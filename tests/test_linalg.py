@@ -213,8 +213,8 @@ class TestLinAlg:
 
         assert kernel_dim == kernel.data.shape[0]
         for v in kernel.data:
-            p = mat @ v.transpose()
-            assert ~p.data.any()
+            p = mat.data @ v.transpose()  # Galois' matrix multiplication
+            assert ~p.any()
 
     @pytest.mark.parametrize("test_case", prepare_test_f2_linear_system())
     def test_solve_f2_linear_system(self, benchmark: BenchmarkFixture, test_case: LSF2TestCase) -> None:
@@ -223,7 +223,7 @@ class TestLinAlg:
 
         x = benchmark(solve_f2_linear_system, mat, b)
 
-        assert mat @ x == b
+        assert np.all(mat.data @ x.data == b.data)  # Galois' matrix multiplication
 
     def test_row_reduce(self, fx_rng: Generator) -> None:
         sizes = [(10, 10), (3, 7), (6, 2)]

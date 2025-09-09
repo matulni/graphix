@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import galois
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 if TYPE_CHECKING:
     import galois.typing as gt
@@ -65,7 +65,7 @@ class MatGF2:
         """Multiply two matrices."""
         if not isinstance(other, MatGF2):
             other = MatGF2(other)
-        return MatGF2(self.data @ other.data)
+        return MatGF2(_mat_mul_jit(self.data, other.data))
 
     def __getitem__(self, key) -> MatGF2:
         """Allow numpy-style slicing."""
@@ -337,11 +337,11 @@ def solve_f2_linear_system(mat: MatGF2, b: MatGF2) -> MatGF2:
     return MatGF2(_solve_f2_linear_system_jit(mat.data, b.data))
 
 
-@njit
+@njit("uint8[::1](uint8[:,::1], uint8[::1])")
 def _solve_f2_linear_system_jit(
     mat_data: npt.NDArray[np.uint8], b_data: npt.NDArray[np.uint8]
 ) -> npt.NDArray[np.uint8]:
-    """Wrap `:func:solve_f2_linear_system`. See docstring for details."""
+    """See docstring of `:func:solve_f2_linear_system` for details."""
     m, n = mat_data.shape
     x = np.zeros(n, dtype=np.uint8)
 
@@ -376,7 +376,7 @@ def _solve_f2_linear_system_jit(
     return x
 
 
-@njit
+@njit("uint8[:,::1](uint8[:,::1], uint64, boolean)")
 def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: bool) -> npt.NDArray[np.uint8]:
     """Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
 
@@ -432,3 +432,20 @@ def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: b
             break
 
     return mat_data
+
+
+@njit("uint8[:,::1](uint8[:,::1], uint8[:,::1])", parallel=True)
+def _mat_mul_jit(m1: npt.NDArray[np.uint8], m2: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    """See docstring of `:func:MatGF2.__matmul__` for details."""
+    m, l = m1.shape
+    _, n = m2.shape
+
+    res = np.zeros((m, n), dtype=np.uint8)
+
+    for i in prange(m):
+        for k in prange(l):
+            if m1[i, k] == 1:
+                for j in range(n):
+                    res[i, j] = np.bitwise_xor(res[i, j], m2[k, j])
+
+    return res
