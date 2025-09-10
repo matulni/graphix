@@ -236,7 +236,7 @@ def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: b
 
     Notes
     -----
-    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for GF(2)
+    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for GF(2).
     """
     m, n = mat_data.shape
     p = 0  # Pivot
