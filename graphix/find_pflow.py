@@ -88,7 +88,7 @@ def _get_reduced_adj(ogi: OpenGraphIndex) -> MatGF2:
     row_tags = ogi.non_outputs
     col_tags = ogi.non_inputs
 
-    adj_red = np.zeros((len(row_tags), len(col_tags)), dtype=np.int_)
+    adj_red = np.zeros((len(row_tags), len(col_tags)), dtype=np.uint8)
 
     for n1, n2 in graph.edges:
         for u, v in ((n1, n2), (n2, n1)):
@@ -216,13 +216,13 @@ def _get_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
     n_no_optim = len(ogi.non_outputs_optim)  # number of rows and columns of the third block of the K_{LS} matrix.
 
     # Steps 8, 9 and 10
-    kils_matrix = nb_matrix[:, n_no:]  # N_R matrix.
-    kils_matrix.concatenate(nb_matrix[:, :n_no], axis=1)  # Concatenate N_L matrix.
-    kils_matrix.concatenate(MatGF2(np.eye(n_no_optim, dtype=np.int_)), axis=1)  # Concatenate identity matrix.
+    kils_matrix = MatGF2(
+        np.concatenate((nb_matrix[:, n_no:], nb_matrix[:, :n_no], np.eye(n_no_optim, dtype=np.uint8)), axis=1)
+    )  # N_R | N_L | 1 matrix.
     kls_matrix = kils_matrix.gauss_elimination(ncols=n_oi_diff, copy=True)  # RREF form is not needed, only REF.
 
     # Step 11
-    p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.int_))
+    p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.uint8))
     solved_nodes: set[int] = set()
     non_outputs_set = set(ogi.non_outputs)
 
@@ -257,12 +257,12 @@ def _get_solvable_nodes(
     solvable_nodes: set[int] = set()
 
     row_idxs = np.flatnonzero(
-        ~kls_matrix.data[:, :n_oi_diff].any(axis=1)
+        ~kls_matrix[:, :n_oi_diff].any(axis=1)
     )  # Row indices of the 0-rows in the first block of K_{LS}.
     if row_idxs.size:
         for v in non_outputs_set - solved_nodes:
             j = n_oi_diff + ogi.non_outputs.index(v)  # `n_oi_diff` is the column offset from the first block of K_{LS}.
-            if not kls_matrix.data[row_idxs, j].any():
+            if not kls_matrix[row_idxs, j].any():
                 solvable_nodes.add(v)
     else:
         # If the first block of K_{LS} does not have 0-rows, all non-solved nodes are solvable.
@@ -283,10 +283,10 @@ def _update_p_matrix(
     for v in solvable_nodes:
         j = ogi.non_outputs.index(v)
         j_shift = n_oi_diff + j  # `n_oi_diff` is the column offset from the first block of K_{LS}.
-        mat = kls_matrix[:, :n_oi_diff]  # First block of K_{LS}, in row echelon form.
-        b = kls_matrix[:, j_shift]
+        mat = MatGF2(kls_matrix[:, :n_oi_diff])  # First block of K_{LS}, in row echelon form.
+        b = MatGF2(kls_matrix[:, j_shift])
         x = solve_f2_linear_system(mat, b)
-        p_matrix[:, j] = x.data
+        p_matrix[:, j] = x[:]
 
 
 def _update_kls_matrix(
@@ -329,7 +329,7 @@ def _update_kls_matrix(
             j = ogi.non_outputs_optim.index(v)
             j_shift = shift + j
             row_idxs = np.flatnonzero(
-                kls_matrix.data[:, j_shift]
+                kls_matrix[:, j_shift]
             ).tolist()  # Row indices with 1s in column of node `v` in third block.
 
             # `row_idxs` can't be empty:
@@ -344,7 +344,7 @@ def _update_kls_matrix(
 
             # Step 12.d.v
             pivots = []  # Store pivots for next step.
-            for i, row in enumerate(kls_matrix.data):
+            for i, row in enumerate(kls_matrix):
                 if i != k:
                     col_idxs = np.flatnonzero(row[:n_oi_diff])  # Column indices with 1s in first block.
                     if col_idxs.size == 0:
@@ -352,12 +352,12 @@ def _update_kls_matrix(
                         break
                     pivots.append(p := col_idxs[0])
                     if kls_matrix[k, p]:  # Row `k` has a 1 in the column corresponding to the leading 1 of row `i`.
-                        kls_matrix[k] += kls_matrix[i]
+                        kls_matrix[k] += row
 
             row_permutation = list(range(n_no_optim))  # Row indices of `kls_matrix`.
             n_pivots = len(pivots)
 
-            col_idxs = np.flatnonzero(kls_matrix.data[k, :n_oi_diff])
+            col_idxs = np.flatnonzero(kls_matrix[k, :n_oi_diff])
             pk = col_idxs[0] if col_idxs.size else None  # Pivot of row `k`.
 
             if pk and k >= n_pivots:  # Row `k` is non-zero in the FB (first block) and it's among zero rows.
@@ -380,7 +380,7 @@ def _update_kls_matrix(
 
             if new_pos != k:
                 reorder(k, new_pos)
-                kls_matrix.permute_row(row_permutation)
+                kls_matrix = MatGF2(kls_matrix[row_permutation])
 
 
 def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
@@ -424,10 +424,9 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
 
     # Steps 5, 6 and 7
     ker_flow_demand_matrix = flow_demand_matrix.null_space().transpose()  # F matrix.
-    c_prime_matrix = correction_matrix_0.copy()
-    c_prime_matrix.concatenate(ker_flow_demand_matrix, axis=1)
+    c_prime_matrix = MatGF2(np.concatenate((correction_matrix_0, ker_flow_demand_matrix), axis=1))
 
-    row_idxs = np.flatnonzero(order_demand_matrix.data.any(axis=1))  # Row indices of the non-zero rows.
+    row_idxs = np.flatnonzero(order_demand_matrix.any(axis=1))  # Row indices of the non-zero rows.
 
     if row_idxs.size:
         # The p-matrix finding algorithm runs on the `order_demand_matrix` without the zero rows.
@@ -435,8 +434,8 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
         #   - The zero rows remain zero after the change of basis (multiplication by `c_prime_matrix`).
         #   - The zero rows remain zero after gaussian elimination.
         #   - Removing the zero rows does not change the solvability condition of the open graph nodes.
-        nb_matrix_optim = order_demand_matrix[row_idxs] @ c_prime_matrix
-        for i in set(range(order_demand_matrix.data.shape[0])).difference(row_idxs):
+        nb_matrix_optim = MatGF2(order_demand_matrix[row_idxs]) @ c_prime_matrix
+        for i in set(range(order_demand_matrix.shape[0])).difference(row_idxs):
             ogi.non_outputs_optim.remove(ogi.non_outputs[i])  # Update the node-index mapping.
 
         # Steps 8 - 12
@@ -444,11 +443,10 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
             return None
     else:
         # If all rows of `order_demand_matrix` are zero, any matrix will solve the associated linear system of equations.
-        p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.int_))
+        p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.uint8))
 
     # Step 13
-    cb_matrix = MatGF2(np.eye(n_no, dtype=np.int_))
-    cb_matrix.concatenate(p_matrix, axis=0)
+    cb_matrix = MatGF2(np.concatenate((np.eye(n_no, dtype=np.uint8), p_matrix), axis=0))
 
     correction_matrix = c_prime_matrix @ cb_matrix
     ordering_matrix = order_demand_matrix @ correction_matrix
@@ -478,7 +476,7 @@ def _get_topological_generations(ordering_matrix: MatGF2) -> list[list[int]] | N
 
     Here we use the convention that the element `ordering_matrix[i,j]` represents a link `j -> i`. NetworkX uses the opposite convention.
     """
-    adj_mat = ordering_matrix.data
+    adj_mat = ordering_matrix
 
     indegree_map = {}
     zero_indegree = []
@@ -562,7 +560,7 @@ def _cnc_matrices2pflow(
     pf: dict[int, set[int]] = {}
     for node in col_tags:
         i = col_tags.index(node)
-        correction_set = {row_tags[j] for j in correction_matrix.data[:, i].nonzero()[0]}
+        correction_set = {row_tags[j] for j in correction_matrix[:, i].nonzero()[0]}
         pf[node] = correction_set
 
     return pf, l_k
