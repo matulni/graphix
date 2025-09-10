@@ -286,7 +286,7 @@ def _update_p_matrix(
         mat = MatGF2(kls_matrix[:, :n_oi_diff])  # First block of K_{LS}, in row echelon form.
         b = MatGF2(kls_matrix[:, j_shift])
         x = solve_f2_linear_system(mat, b)
-        p_matrix[:, j] = x[:]
+        p_matrix[:, j] = x
 
 
 def _update_kls_matrix(
@@ -380,7 +380,9 @@ def _update_kls_matrix(
 
             if new_pos != k:
                 reorder(k, new_pos)
-                kls_matrix = MatGF2(kls_matrix[row_permutation])
+                kls_matrix[:] = MatGF2(
+                    kls_matrix[row_permutation]
+                )  # `[:]` is crucial to modify the data pointed by `kls_matrix`
 
 
 def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
