@@ -1,4 +1,4 @@
-"""Performant module for linear algebra on GF2 field."""
+r"""Performant module for linear algebra on :math:`\mathbb F_2` field."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import numpy as np
 from numba import njit, prange
 
 if TYPE_CHECKING:
+    import galois.typing as gt
     import numpy.typing as npt
 
 
@@ -21,12 +22,35 @@ class MatGF2(
     is_primitive_poly=True,
     primitive_element=1,
 ):
-    """Matrix on GF2 field."""
+    r"""Custom implementation of :math:`\mathbb F_2` matrices. This class monkey-patches :class:`galois.GF2` to specialize some methods to the :math:`\mathbb F_2` field for increased efficiency."""
 
-    def __new__(cls, data, dtype=np.uint8):
+    def __new__(cls, data: gt.ElementLike | gt.ArrayLike | MatGF2, dtype: npt.DTypeLike = np.uint8):
+        """Instantiate new `MatGF2` object.
+
+        Parameters
+        ----------
+        data : array
+            Data in array
+        dtype : npt.DTypeLike
+            Optional, defaults to `np.uint8`.
+
+        Return
+        -------
+            MatGF2
+        """
         return galois.GF2(data, dtype=dtype).view(cls)
 
-    def __array_finalize__(self, obj):
+    def __array_finalize__(self, obj) -> None:  # noqa: PLW3201
+        """Set default compilation modes in :class:`galois.GF2`.
+
+        Notes
+        -----
+        This method gets called every time a new instance of `MatGF2` is created. For more detail see References.
+
+        References
+        ----------
+        https://numpy.org/doc/stable/user/basics.subclassing.html#the-role-of-array-finalize
+        """
         if obj is None:
             return
         self._default_ufunc_mode = "jit-calculate"
@@ -38,11 +62,25 @@ class MatGF2(
             return NotImplemented
         return bool(np.all(self.data == other.data))
 
-    # def __matmul__(self, other: gt.ElementLike | gt.ArrayLike | MatGF2) -> MatGF2:
-    #     """Multiply two matrices."""
-    #     if not isinstance(other, MatGF2):
-    #         other = MatGF2(other)
-    #     return MatGF2(_mat_mul_jit(self.data, other.data))
+    def mat_mul(self, other: MatGF2 | npt.NDArray[np.uint8]) -> MatGF2:
+        r"""Multiply two matrices.
+
+        Parameters
+        ----------
+        other : array
+            Matrix that right-multiplies `self`.
+
+        Returns
+        -------
+        MatGF2
+            Matrix product `self` @  `other` in :math:`\mathbb F_2`.
+
+        Notes
+        -----
+        This function is a wrapper over :func:`_mat_mul_jit` which is a just-time compiled implementation of the matrix multiplication in :math:`\mathbb F_2`. It is more efficient than `galois.GF2.__matmul__` when the matrix `self` is sparse.
+        The implementation assumes that the arguments have the right dimensions.
+        """
+        return MatGF2(_mat_mul_jit(self, other))
 
     def get_rank(self) -> int:
         """Get the rank of the matrix.

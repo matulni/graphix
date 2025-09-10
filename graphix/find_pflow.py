@@ -184,7 +184,7 @@ def _find_pflow_simple(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
     if correction_matrix is None:
         return None  # The flow-demand matrix is not invertible, therefore there's no flow.
 
-    ordering_matrix = order_demand_matrix @ correction_matrix  # NC matrix
+    ordering_matrix = order_demand_matrix.mat_mul(correction_matrix)  # NC matrix
 
     return correction_matrix, ordering_matrix
 
@@ -436,7 +436,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
         #   - The zero rows remain zero after the change of basis (multiplication by `c_prime_matrix`).
         #   - The zero rows remain zero after gaussian elimination.
         #   - Removing the zero rows does not change the solvability condition of the open graph nodes.
-        nb_matrix_optim = MatGF2(order_demand_matrix[row_idxs]) @ c_prime_matrix
+        nb_matrix_optim = MatGF2(order_demand_matrix[row_idxs]).mat_mul(c_prime_matrix)
         for i in set(range(order_demand_matrix.shape[0])).difference(row_idxs):
             ogi.non_outputs_optim.remove(ogi.non_outputs[i])  # Update the node-index mapping.
 
@@ -450,8 +450,8 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
     # Step 13
     cb_matrix = MatGF2(np.concatenate((np.eye(n_no, dtype=np.uint8), p_matrix), axis=0))
 
-    correction_matrix = c_prime_matrix @ cb_matrix
-    ordering_matrix = order_demand_matrix @ correction_matrix
+    correction_matrix = c_prime_matrix.mat_mul(cb_matrix)
+    ordering_matrix = order_demand_matrix.mat_mul(correction_matrix)
 
     return correction_matrix, ordering_matrix
 
@@ -562,7 +562,7 @@ def _cnc_matrices2pflow(
     pf: dict[int, set[int]] = {}
     for node in col_tags:
         i = col_tags.index(node)
-        correction_set = {row_tags[j] for j in correction_matrix[:, i].nonzero()[0]}
+        correction_set = {row_tags[j] for j in np.flatnonzero(correction_matrix[:, i])}
         pf[node] = correction_set
 
     return pf, l_k
