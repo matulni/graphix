@@ -337,10 +337,10 @@ def _update_kls_matrix(
             k = row_idxs.pop()
 
             # Step 12.d.iii
-            kls_matrix[row_idxs] += kls_matrix[k]  # Adding a row to previous rows preserves REF.
+            kls_matrix[row_idxs] ^= kls_matrix[k]  # Adding a row to previous rows preserves REF.
 
             # Step 12.d.iv
-            kls_matrix[k] += kils_matrix[j]  # Row `k` may now break REF.
+            kls_matrix[k] ^= kils_matrix[j]  # Row `k` may now break REF.
 
             # Step 12.d.v
             pivots = []  # Store pivots for next step.
@@ -352,7 +352,7 @@ def _update_kls_matrix(
                         break
                     pivots.append(p := col_idxs[0])
                     if kls_matrix[k, p]:  # Row `k` has a 1 in the column corresponding to the leading 1 of row `i`.
-                        kls_matrix[k] += row
+                        kls_matrix[k] ^= row
 
             row_permutation = list(range(n_no_optim))  # Row indices of `kls_matrix`.
             n_pivots = len(pivots)

@@ -4,27 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import galois
 import numpy as np
 from numba import njit, prange
 
 if TYPE_CHECKING:
-    import galois.typing as gt
+    from typing import Self
+
     import numpy.typing as npt
 
 
-class MatGF2(
-    galois.GF2,
-    characteristic=2,
-    degree=1,
-    order=2,
-    irreducible_poly_int=3,
-    is_primitive_poly=True,
-    primitive_element=1,
-):
-    r"""Custom implementation of :math:`\mathbb F_2` matrices. This class monkey-patches :class:`galois.GF2` to specialize some methods to the :math:`\mathbb F_2` field for increased efficiency."""
+class MatGF2(np.ndarray):
+    r"""Custom implementation of :math:`\mathbb F_2` matrices. This class specializes `:class:np.ndarray` to the :math:`\mathbb F_2` field with increased efficiency."""
 
-    def __new__(cls, data: gt.ElementLike | gt.ArrayLike | MatGF2, dtype: npt.DTypeLike = np.uint8):
+    def __new__(cls, data: npt.ArrayLike) -> Self:
         """Instantiate new `MatGF2` object.
 
         Parameters
@@ -38,29 +30,7 @@ class MatGF2(
         -------
             MatGF2
         """
-        return galois.GF2(data, dtype=dtype).view(cls)
-
-    def __array_finalize__(self, obj) -> None:  # noqa: PLW3201
-        """Set default compilation modes in :class:`galois.GF2`.
-
-        Notes
-        -----
-        This method gets called every time a new instance of `MatGF2` is created. For more detail see References.
-
-        References
-        ----------
-        https://numpy.org/doc/stable/user/basics.subclassing.html#the-role-of-array-finalize
-        """
-        if obj is None:
-            return
-        self._default_ufunc_mode = "jit-calculate"
-        self._ufunc_mode = "jit-calculate"
-
-    def __eq__(self, other: object) -> bool:
-        """Return `True` if two matrices are equal, `False` otherwise."""
-        if not isinstance(other, MatGF2):
-            return NotImplemented
-        return bool(np.all(self.data == other.data))
+        return np.array(data, dtype=np.uint8).view(cls)
 
     def mat_mul(self, other: MatGF2 | npt.NDArray[np.uint8]) -> MatGF2:
         r"""Multiply two matrices.
@@ -113,7 +83,7 @@ class MatGF2(
         if m > n:
             return None
 
-        ident = galois.GF2.Identity(m)
+        ident = np.eye(m, dtype=np.uint8)
         aug = MatGF2(np.hstack([self.data, ident]))
         red = aug.row_reduction(ncols=n)  # Reduced row echelon form
 
@@ -121,7 +91,7 @@ class MatGF2(
         # We don't use `MatGF2.get_rank()` to avoid row-reducing twice.
         if m != int(np.sum(red[:, :n].any(axis=1))):
             return None
-        rinv = galois.GF2.Zeros((n, m))
+        rinv = np.zeros((n, m), dtype=np.uint8)
 
         for i, row in enumerate(red):
             j = np.flatnonzero(row)[0]  # Column index corresponding to the leading 1 in row `i`.
@@ -143,7 +113,7 @@ class MatGF2(
         """
         m, n = self.shape
 
-        ident = galois.GF2.Identity(n)
+        ident = np.eye(n, dtype=np.uint8)
         ref = MatGF2(np.hstack([self.T, ident]))
         ref.gauss_elimination(ncols=m)
         row_idxs = np.flatnonzero(~ref[:, :m].any(axis=1))  # Row indices of the 0-rows in the first block of `ref`.
@@ -188,7 +158,7 @@ class MatGF2(
             The matrix in row-reduced echelon form.
         """
         ncols = self.shape[1] if ncols is None else ncols
-        mat_ref = MatGF2(self.data) if copy else self
+        mat_ref = self.copy() if copy else self
 
         return MatGF2(_elimination_jit(mat_ref, ncols=ncols, full_reduce=True))
 
@@ -256,7 +226,7 @@ def _solve_f2_linear_system_jit(
 
 @njit("uint8[:,::1](uint8[:,::1], uint64, boolean)")
 def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: bool) -> npt.NDArray[np.uint8]:
-    """Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
+    r"""Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
 
     Parameters
     ----------
@@ -274,7 +244,15 @@ def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: b
 
     Notes
     -----
-    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for GF(2).
+    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for :math:`\mathbb F_2`.
+
+    Row echelon form (REF):
+        1. All rows having only zero entries are at the bottom.
+        2. The leading entry of every nonzero row is on the right of the leading entry of every row above.
+        3. (1) and (2) imply that all entries in a column below a leading coefficient are zeros.
+        4. It's the result of Gaussian elimination.
+
+    For matrices over :math:`\mathbb F_2` the only difference between REF and RREF is that elements above a leading 1 can be non-zero in REF but must be 0 in RREF.
     """
     m, n = mat_data.shape
     p = 0  # Pivot
