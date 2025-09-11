@@ -602,7 +602,7 @@ class TestPflow:
         if test_case.radj is not None:
             ogi = test_case.ogi
             radj = _get_reduced_adj(ogi)
-            assert radj == test_case.radj
+            assert np.all(radj == test_case.radj)
 
     @pytest.mark.parametrize("test_case", prepare_test_og())
     def test_get_pflow_matrices(self, test_case: OpenGraphTestCase) -> None:
@@ -610,8 +610,8 @@ class TestPflow:
             ogi = test_case.ogi
             flow_demand_matrix, order_demand_matrix = _get_pflow_matrices(ogi)
 
-            assert flow_demand_matrix == test_case.flow_demand_mat
-            assert order_demand_matrix == test_case.order_demand_mat
+            assert np.all(flow_demand_matrix == test_case.flow_demand_mat)
+            assert np.all(order_demand_matrix == test_case.order_demand_mat)
 
     @pytest.mark.parametrize("test_case", prepare_test_og())
     def test_find_pflow_simple(self, test_case: OpenGraphTestCase) -> None:
@@ -626,7 +626,9 @@ class TestPflow:
                     assert pflow_algebraic is not None
                     correction_matrix, _ = pflow_algebraic
                     ident = MatGF2(np.eye(len(ogi.non_outputs), dtype=np.uint8))
-                    assert test_case.flow_demand_mat @ correction_matrix == ident
+                    assert np.all(
+                        (test_case.flow_demand_mat @ correction_matrix) % 2 == ident
+                    )  # Test with numpy matrix product.
 
     @pytest.mark.parametrize("test_case", prepare_test_og())
     def test_find_pflow_determinism(self, test_case: OpenGraphTestCase, fx_rng: Generator) -> None:
