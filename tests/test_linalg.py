@@ -116,6 +116,54 @@ def prepare_test_f2_linear_system() -> list[LSF2TestCase]:
     return test_cases
 
 
+def verify_elimination(mat: MatGF2, mat_red: MatGF2, n_cols_red: int, full_reduce: bool) -> None:
+    """Test gaussian elimination (GE).
+
+    Parameters
+    ----------
+    mat : MatGF2
+        Original matrix.
+    mat_red : MatGF2
+        Gaussian-eliminated matrix.
+    n_cols_red : int
+        Number of columns over which `mat` was reduced.
+    full_reduce : bool
+        Flag to check for row-reduced echelon form (`True`) or row echelon form (`False`).
+
+    Notes
+    -----
+    It tests that:
+        1) Matrix is in row echelon form (REF) or row-reduced echelon form.
+        2) The procedure only entails row operations.
+
+        Check (2) implies that the GE procedure can be represented by a linear transformation. Thefore, we perform GE on :math:`A = [M|1]`, with :math:`M` the test matrix and :math:`1` the identiy, and we verify that :math:`M = L^{-1}M'`, where :math:`M', L` are the left and right blocks of :math:`A` after gaussian elimination.
+    """
+    mat_red_block = MatGF2(mat_red[:, :n_cols_red])
+    # Check 1
+    p = -1  # pivot
+    for i, row in enumerate(mat_red_block):
+        col_idxs = np.flatnonzero(row)  # Column indices with 1s
+        if col_idxs.size == 0:
+            assert not mat_red_block[i:, :].any()  # If there aren't any 1s, we verify that the remaining rows are all 0
+            break
+        j = col_idxs[0]
+        assert j > p
+        if full_reduce:
+            assert (
+                np.sum(mat_red_block[:, j] == 1) == 1
+            )  # If checking row-reduced echelon form, verify it is the only 1.
+        p = j
+
+    # Check 2
+    ncols = mat.shape[1]
+    mat_ge = MatGF2(mat_red[:, :ncols])
+    mat_l = MatGF2(mat_red[:, ncols:])
+
+    mat_linv = mat_l.right_inverse()
+    if mat_linv is not None:
+        assert np.all((mat_linv @ mat_ge) % 2 == mat)  # Test with numpy matrix product.
+
+
 class TestLinAlg:
     @pytest.mark.parametrize("test_case", prepare_test_matrix())
     def test_get_rank(self, test_case: LinalgTestCase) -> None:
@@ -137,36 +185,9 @@ class TestLinAlg:
 
     @pytest.mark.parametrize("test_case", prepare_test_matrix())
     def test_gaussian_elimination(self, test_case: LinalgTestCase) -> None:
-        """Test gaussian elimination (GE).
-
-        It tests that:
-            1) Matrix is in row echelon form (REF).
-            2) The procedure only entails row operations.
-
-        Check (2) implies that the GE procedure can be represented by a linear transformation. Thefore, we perform GE on :math:`A = [M|1]`, with :math:`M` the test matrix and :math:`1` the identiy, and we verify that :math:`M = L^{-1}M'`, where :math:`M', L` are the left and right blocks of :math:`A` after gaussian elimination.
-        """
         mat = test_case.matrix
-        nrows, ncols = mat.shape
-        mat_ext = MatGF2(np.concatenate((mat, np.eye(nrows, dtype=np.uint8)), axis=1))
-        mat_ext.gauss_elimination(ncols=ncols)
-        mat_ge = MatGF2(mat_ext[:, :ncols])
-        mat_l = MatGF2(mat_ext[:, ncols:])
-
-        # Check 1
-        p = -1  # pivot
-        for i, row in enumerate(mat_ge):
-            col_idxs = np.flatnonzero(row)  # Column indices with 1s
-            if col_idxs.size == 0:
-                assert not mat_ge[i:, :].any()  # If there aren't any 1s, we verify that the remaining rows are all 0
-                break
-            j = col_idxs[0]
-            assert j > p
-            p = j
-
-        # Check 2
-        mat_linv = mat_l.right_inverse()
-        if mat_linv is not None:
-            assert np.all((mat_linv @ mat_ge) % 2 == mat)  # Test with numpy matrix product.
+        mat_red = mat.row_reduction(ncols=mat.shape[1], copy=True)
+        verify_elimination(mat, mat_red, mat.shape[1], full_reduce=False)
 
     @pytest.mark.parametrize("test_case", prepare_test_matrix())
     def test_null_space(self, benchmark: BenchmarkFixture, test_case: LinalgTestCase) -> None:
@@ -193,9 +214,7 @@ class TestLinAlg:
         sizes = [(10, 10), (3, 7), (6, 2)]
         ncols = [4, 5, 2]
 
-        # for size, ncol in zip(sizes, ncols):
-        #     mat = MatGF2(fx_rng.integers(size=size, low=0, high=2, dtype=np.uint8))
-        #     mat_ref = mat.row_reduce(ncols=ncol)  # Galois' function
-        #     mat.row_reduction(ncols=ncol)
-
-        #     assert mat_ref == mat
+        for size, ncol in zip(sizes, ncols):
+            mat = MatGF2(fx_rng.integers(size=size, low=0, high=2, dtype=np.uint8))
+            mat_red = mat.row_reduction(ncols=ncol, copy=True)
+            verify_elimination(mat, mat_red, ncol, full_reduce=True)

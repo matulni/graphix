@@ -8,13 +8,15 @@ import numpy as np
 from numba import njit, prange
 
 if TYPE_CHECKING:
+    from typing import Self
+
     import numpy.typing as npt
 
 
 class MatGF2(np.ndarray):
     r"""Custom implementation of :math:`\mathbb F_2` matrices. This class specializes `:class:np.ndarray` to the :math:`\mathbb F_2` field with increased efficiency."""
 
-    def __new__(cls, data: npt.ArrayLike):
+    def __new__(cls, data: npt.ArrayLike) -> Self:
         """Instantiate new `MatGF2` object.
 
         Parameters
@@ -224,7 +226,7 @@ def _solve_f2_linear_system_jit(
 
 @njit("uint8[:,::1](uint8[:,::1], uint64, boolean)")
 def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: bool) -> npt.NDArray[np.uint8]:
-    """Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
+    r"""Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
 
     Parameters
     ----------
@@ -242,7 +244,15 @@ def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: b
 
     Notes
     -----
-    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for GF(2).
+    Adapted from `:func: galois.FieldArray.row_reduction`, which renders the matrix in row-reduced echelon form (RREF) and specialized for :math:`\mathbb F_2`.
+
+    Row echelon form (REF):
+        1. All rows having only zero entries are at the bottom.
+        2. The leading entry of every nonzero row is on the right of the leading entry of every row above.
+        3. (1) and (2) imply that all entries in a column below a leading coefficient are zeros.
+        4. It's the result of Gaussian elimination.
+
+    For matrices over :math:`\mathbb F_2` the only difference between REF and RREF is that elements above a leading 1 can be non-zero in REF but must be 0 in RREF.
     """
     m, n = mat_data.shape
     p = 0  # Pivot
