@@ -63,7 +63,7 @@ class OpenGraphIndex:
         self.non_outputs_optim = deepcopy(self.non_outputs)
 
 
-def _get_reduced_adj(ogi: OpenGraphIndex) -> MatGF2:
+def _compute_reduced_adj(ogi: OpenGraphIndex) -> MatGF2:
     r"""Return the reduced adjacency matrix (RAdj) of the input open graph.
 
     Parameters
@@ -116,7 +116,7 @@ def _get_pflow_matrices(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2]:
     -----
     See Definitions 3.4 and 3.5, and Algorithm 1 in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
-    flow_demand_matrix = _get_reduced_adj(ogi)
+    flow_demand_matrix = _compute_reduced_adj(ogi)
     order_demand_matrix = flow_demand_matrix.copy()
 
     inputs_set = set(ogi.og.inputs)
@@ -426,7 +426,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
 
     # Steps 5, 6 and 7
     ker_flow_demand_matrix = flow_demand_matrix.null_space().transpose()  # F matrix.
-    c_prime_matrix = MatGF2(np.concatenate((correction_matrix_0, ker_flow_demand_matrix), axis=1))
+    c_prime_matrix = np.concatenate((correction_matrix_0, ker_flow_demand_matrix), axis=1).view(MatGF2)
 
     row_idxs = np.flatnonzero(order_demand_matrix.any(axis=1))  # Row indices of the non-zero rows.
 
@@ -448,7 +448,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
         p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.uint8))
 
     # Step 13
-    cb_matrix = MatGF2(np.concatenate((np.eye(n_no, dtype=np.uint8), p_matrix), axis=0))
+    cb_matrix = np.concatenate((np.eye(n_no, dtype=np.uint8), p_matrix), axis=0).view(MatGF2)
 
     correction_matrix = c_prime_matrix.mat_mul(cb_matrix)
     ordering_matrix = order_demand_matrix.mat_mul(correction_matrix)
@@ -480,8 +480,8 @@ def _get_topological_generations(ordering_matrix: MatGF2) -> list[list[int]] | N
     """
     adj_mat = ordering_matrix
 
-    indegree_map = {}
-    zero_indegree = []
+    indegree_map: dict[int, int] = {}
+    zero_indegree: list[int] = []
     neighbors = {node: set(np.flatnonzero(row).astype(int)) for node, row in enumerate(adj_mat.T)}
     for node, col in enumerate(adj_mat):
         parents = np.flatnonzero(col)
@@ -490,7 +490,7 @@ def _get_topological_generations(ordering_matrix: MatGF2) -> list[list[int]] | N
         else:
             zero_indegree.append(node)
 
-    generations = []
+    generations: list[list[int]] = []
 
     while zero_indegree:
         this_generation = zero_indegree

@@ -8,9 +8,9 @@ import pytest
 
 from graphix.find_pflow import (
     OpenGraphIndex,
+    _compute_reduced_adj,
     _find_pflow_simple,
     _get_pflow_matrices,
-    _get_reduced_adj,
     _get_topological_generations,
     find_pflow,
 )
@@ -598,10 +598,10 @@ def prepare_test_dag() -> list[DAGTestCase]:
 
 class TestPflow:
     @pytest.mark.parametrize("test_case", prepare_test_og())
-    def test_get_reduced_adj(self, test_case: OpenGraphTestCase) -> None:
+    def test_compute_reduced_adj(self, test_case: OpenGraphTestCase) -> None:
         if test_case.radj is not None:
             ogi = test_case.ogi
-            radj = _get_reduced_adj(ogi)
+            radj = _compute_reduced_adj(ogi)
             assert np.all(radj == test_case.radj)
 
     @pytest.mark.parametrize("test_case", prepare_test_og())
