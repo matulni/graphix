@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
+from graphix._linalg import MatGF2
 from graphix.find_pflow import (
     OpenGraphIndex,
     _compute_reduced_adj,
@@ -16,7 +17,6 @@ from graphix.find_pflow import (
 )
 from graphix.fundamentals import Plane
 from graphix.generator import _pflow2pattern
-from graphix.linalg import MatGF2
 from graphix.measurements import Measurement
 from graphix.opengraph import OpenGraph
 from graphix.parameter import Placeholder

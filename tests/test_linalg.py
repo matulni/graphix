@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, NamedTuple
 import numpy as np
 import pytest
 
-from graphix.linalg import MatGF2, solve_f2_linear_system
+from graphix._linalg import MatGF2, solve_f2_linear_system
 
 if TYPE_CHECKING:
     from numpy.random import Generator
@@ -166,10 +166,10 @@ def verify_elimination(mat: MatGF2, mat_red: MatGF2, n_cols_red: int, full_reduc
 
 class TestLinAlg:
     @pytest.mark.parametrize("test_case", prepare_test_matrix())
-    def test_get_rank(self, test_case: LinalgTestCase) -> None:
+    def test_compute_rank(self, test_case: LinalgTestCase) -> None:
         mat = test_case.matrix
         rank = test_case.rank
-        assert mat.get_rank() == rank
+        assert mat.compute_rank() == rank
 
     @pytest.mark.parametrize("test_case", prepare_test_matrix())
     def test_right_inverse(self, benchmark: BenchmarkFixture, test_case: LinalgTestCase) -> None:

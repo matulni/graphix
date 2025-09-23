@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from graphix._linalg import MatGF2, solve_f2_linear_system
 from graphix.fundamentals import Axis, Plane
-from graphix.linalg import MatGF2, solve_f2_linear_system
 from graphix.measurements import PauliMeasurement
 from graphix.sim.base_backend import NodeIndex
 
@@ -88,7 +88,7 @@ def _compute_reduced_adj(ogi: OpenGraphIndex) -> MatGF2:
     row_tags = ogi.non_outputs
     col_tags = ogi.non_inputs
 
-    adj_red = np.zeros((len(row_tags), len(col_tags)), dtype=np.uint8)
+    adj_red = np.zeros((len(row_tags), len(col_tags)), dtype=np.uint8).view(MatGF2)
 
     for n1, n2 in graph.edges:
         for u, v in ((n1, n2), (n2, n1)):
@@ -96,7 +96,7 @@ def _compute_reduced_adj(ogi: OpenGraphIndex) -> MatGF2:
                 i, j = row_tags.index(u), col_tags.index(v)
                 adj_red[i, j] = 1
 
-    return MatGF2(adj_red)
+    return adj_red
 
 
 def _get_pflow_matrices(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2]:
@@ -216,13 +216,13 @@ def _get_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
     n_no_optim = len(ogi.non_outputs_optim)  # number of rows and columns of the third block of the K_{LS} matrix.
 
     # Steps 8, 9 and 10
-    kils_matrix = MatGF2(
-        np.concatenate((nb_matrix[:, n_no:], nb_matrix[:, :n_no], np.eye(n_no_optim, dtype=np.uint8)), axis=1)
-    )  # N_R | N_L | 1 matrix.
+    kils_matrix = np.concatenate(
+        (nb_matrix[:, n_no:], nb_matrix[:, :n_no], np.eye(n_no_optim, dtype=np.uint8)), axis=1
+    ).view(MatGF2)  # N_R | N_L | 1 matrix.
     kls_matrix = kils_matrix.gauss_elimination(ncols=n_oi_diff, copy=True)  # RREF form is not needed, only REF.
 
     # Step 11
-    p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.uint8))
+    p_matrix = np.zeros((n_oi_diff, n_no), dtype=np.uint8).view(MatGF2)
     solved_nodes: set[int] = set()
     non_outputs_set = set(ogi.non_outputs)
 
@@ -324,7 +324,7 @@ def _update_kls_matrix(
     for v in solvable_nodes:
         if (
             v in ogi.non_outputs_optim
-        ):  # if `v` corresponded to a zero row in K_{LS}, it was not present in `kls_matrix`, so there's no need to do Gaussian elimination for that vertex.
+        ):  # if `v` corresponded to a zero row in N_B, it was not present in `kls_matrix` because we removed it in the optimization process, so there's no need to do Gaussian elimination for that vertex.
             # Step 12.d.ii
             j = ogi.non_outputs_optim.index(v)
             j_shift = shift + j
@@ -379,10 +379,10 @@ def _update_kls_matrix(
                 new_pos = k  # Do nothing.
 
             if new_pos != k:
-                reorder(k, new_pos)
-                kls_matrix[:] = MatGF2(
-                    kls_matrix[row_permutation]
-                )  # `[:]` is crucial to modify the data pointed by `kls_matrix`
+                reorder(k, new_pos)  # Modify `row_permutation` in-place.
+                # `[:]` is crucial to modify the data pointed by `kls_matrix`.
+                # `view` is used to keep mypy happy without copying data.
+                kls_matrix[:] = kls_matrix[row_permutation].view(MatGF2)
 
 
 def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
@@ -436,7 +436,9 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
         #   - The zero rows remain zero after the change of basis (multiplication by `c_prime_matrix`).
         #   - The zero rows remain zero after gaussian elimination.
         #   - Removing the zero rows does not change the solvability condition of the open graph nodes.
-        nb_matrix_optim = MatGF2(order_demand_matrix[row_idxs]).mat_mul(c_prime_matrix)
+        nb_matrix_optim = (
+            order_demand_matrix[row_idxs].view(MatGF2).mat_mul(c_prime_matrix)
+        )  # `view` is used to keep mypy happy without copying data.
         for i in set(range(order_demand_matrix.shape[0])).difference(row_idxs):
             ogi.non_outputs_optim.remove(ogi.non_outputs[i])  # Update the node-index mapping.
 
@@ -445,7 +447,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
             return None
     else:
         # If all rows of `order_demand_matrix` are zero, any matrix will solve the associated linear system of equations.
-        p_matrix = MatGF2(np.zeros((n_oi_diff, n_no), dtype=np.uint8))
+        p_matrix = np.zeros((n_oi_diff, n_no), dtype=np.uint8).view(MatGF2)
 
     # Step 13
     cb_matrix = np.concatenate((np.eye(n_no, dtype=np.uint8), p_matrix), axis=0).view(MatGF2)
