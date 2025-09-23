@@ -380,9 +380,9 @@ def _update_kls_matrix(
 
             if new_pos != k:
                 reorder(k, new_pos)  # Modify `row_permutation` in-place.
-                # `[:]` is crucial to modify the data pointed by `kls_matrix`.
-                # `view` is used to keep mypy happy without copying data.
-                kls_matrix[:] = kls_matrix[row_permutation].view(MatGF2)
+                kls_matrix[:] = kls_matrix[
+                    row_permutation
+                ]  # `[:]` is crucial to modify the data pointed by `kls_matrix`.
 
 
 def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:

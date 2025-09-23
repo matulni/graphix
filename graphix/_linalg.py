@@ -30,8 +30,8 @@ class MatGF2(np.ndarray):
         -------
             MatGF2
         """
-        return np.array(data, dtype=np.uint8).view(cls)
-        # return super().__new__(cls)
+        arr = np.array(data, dtype=np.uint8)
+        return super().__new__(cls, shape=arr.shape, dtype=arr.dtype, buffer=arr)
 
     def mat_mul(self, other: MatGF2 | npt.NDArray[np.uint8]) -> MatGF2:
         r"""Multiply two matrices.
