@@ -51,7 +51,7 @@ class MatGF2(np.ndarray):
         This function is a wrapper over :func:`_mat_mul_jit` which is a just-time compiled implementation of the matrix multiplication in :math:`\mathbb F_2`. It is more efficient than `galois.GF2.__matmul__` when the matrix `self` is sparse.
         The implementation assumes that the arguments have the right dimensions.
         """
-        return _mat_mul_jit(self, other).view(MatGF2)
+        return MatGF2(_mat_mul_jit(self, other))
 
     def compute_rank(self) -> int:
         """Get the rank of the matrix.
@@ -140,7 +140,7 @@ class MatGF2(np.ndarray):
         ncols = self.shape[1] if ncols is None else ncols
         mat_ref = MatGF2(self) if copy else self
 
-        return _elimination_jit(mat_ref, ncols=ncols, full_reduce=False).view(MatGF2)
+        return MatGF2(_elimination_jit(mat_ref, ncols=ncols, full_reduce=False))
 
     def row_reduction(self, ncols: int | None = None, copy: bool = False) -> MatGF2:
         """Return row-reduced echelon form (RREF) by performing Gaussian elimination.
@@ -161,7 +161,7 @@ class MatGF2(np.ndarray):
         ncols = self.shape[1] if ncols is None else ncols
         mat_ref = self.copy() if copy else self
 
-        return _elimination_jit(mat_ref, ncols=ncols, full_reduce=True).view(MatGF2)
+        return MatGF2(_elimination_jit(mat_ref, ncols=ncols, full_reduce=True))
 
 
 def solve_f2_linear_system(mat: MatGF2, b: MatGF2) -> MatGF2:
@@ -183,7 +183,7 @@ def solve_f2_linear_system(mat: MatGF2, b: MatGF2) -> MatGF2:
     -----
     This function is not integrated in `:class: graphix.linalg.MatGF2` because it does not perform any checks on the form of `mat` to ensure that it is in REF or that the system is solvable.
     """
-    return _solve_f2_linear_system_jit(mat, b).view(MatGF2)
+    return MatGF2(_solve_f2_linear_system_jit(mat, b))
 
 
 @njit("uint8[::1](uint8[:,::1], uint8[::1])")
