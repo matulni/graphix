@@ -173,7 +173,7 @@ def _find_pflow_simple(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
     -----
     - The ordering matrix is defined as the product of the order-demand matrix :math:`N` and the correction matrix.
 
-    - The function only returns `None` when the flow-demand matrix is not invertible (meaning that `ogi` does not have Pauli flow). The condition that the ordering matrix :math:`NC` must encode a directed acyclic graph (DAG) is verified in a subsequent step by `:func: _get_topological_generations`.
+    - The function only returns `None` when the flow-demand matrix is not invertible (meaning that `ogi` does not have Pauli flow). The condition that the ordering matrix :math:`NC` must encode a directed acyclic graph (DAG) is verified in a subsequent step by `:func: _compute_topological_generations`.
 
     See Definitions 3.4, 3.5 and 3.6, Theorems 3.1 and 4.1, and Algorithm 2 in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
@@ -189,7 +189,7 @@ def _find_pflow_simple(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
     return correction_matrix, ordering_matrix
 
 
-def _get_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
+def _compute_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
     r"""Perform the steps 8 - 12 of the general case (larger number of outputs than inputs) algorithm.
 
     Parameters
@@ -228,7 +228,7 @@ def _get_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
 
     # Step 12
     while solved_nodes != non_outputs_set:
-        solvable_nodes = _get_solvable_nodes(ogi, kls_matrix, non_outputs_set, solved_nodes, n_oi_diff)  # Step 12.a
+        solvable_nodes = _find_solvable_nodes(ogi, kls_matrix, non_outputs_set, solved_nodes, n_oi_diff)  # Step 12.a
         if not solvable_nodes:
             return None
 
@@ -239,7 +239,7 @@ def _get_p_matrix(ogi: OpenGraphIndex, nb_matrix: MatGF2) -> MatGF2 | None:
     return p_matrix
 
 
-def _get_solvable_nodes(
+def _find_solvable_nodes(
     ogi: OpenGraphIndex,
     kls_matrix: MatGF2,
     non_outputs_set: AbstractSet[int],
@@ -443,7 +443,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
             ogi.non_outputs_optim.remove(ogi.non_outputs[i])  # Update the node-index mapping.
 
         # Steps 8 - 12
-        if (p_matrix := _get_p_matrix(ogi, nb_matrix_optim)) is None:
+        if (p_matrix := _compute_p_matrix(ogi, nb_matrix_optim)) is None:
             return None
     else:
         # If all rows of `order_demand_matrix` are zero, any matrix will solve the associated linear system of equations.
@@ -458,7 +458,7 @@ def _find_pflow_general(ogi: OpenGraphIndex) -> tuple[MatGF2, MatGF2] | None:
     return correction_matrix, ordering_matrix
 
 
-def _get_topological_generations(ordering_matrix: MatGF2) -> list[list[int]] | None:
+def _compute_topological_generations(ordering_matrix: MatGF2) -> list[list[int]] | None:
     """Stratify the directed acyclic graph (DAG) represented by the ordering matrix into generations.
 
     Parameters
@@ -549,7 +549,7 @@ def _cnc_matrices2pflow(
 
     # Calculation of the partial ordering
 
-    if (topo_gen := _get_topological_generations(ordering_matrix)) is None:
+    if (topo_gen := _compute_topological_generations(ordering_matrix)) is None:
         return None  # The NC matrix is not a DAG, therefore there's no flow.
 
     l_k = dict.fromkeys(ogi.og.outputs, 0)  # Output nodes are always in layer 0.

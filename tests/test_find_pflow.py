@@ -10,9 +10,9 @@ from graphix._linalg import MatGF2
 from graphix.find_pflow import (
     OpenGraphIndex,
     _compute_reduced_adj,
+    _compute_topological_generations,
     _find_pflow_simple,
     _get_pflow_matrices,
-    _get_topological_generations,
     find_pflow,
 )
 from graphix.fundamentals import Plane
@@ -676,8 +676,8 @@ class TestPflow:
             assert pflow is not None
 
     @pytest.mark.parametrize("test_case", prepare_test_dag())
-    def test_get_topological_generations(self, test_case: DAGTestCase) -> None:
+    def test_compute_topological_generations(self, test_case: DAGTestCase) -> None:
         adj_mat = test_case.adj_mat
         generations_ref = test_case.generations
 
-        assert generations_ref == _get_topological_generations(adj_mat)
+        assert generations_ref == _compute_topological_generations(adj_mat)
