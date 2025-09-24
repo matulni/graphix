@@ -4,16 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numba as nb
 import numpy as np
-from numba import njit, prange
+import numpy.typing as npt
 
 if TYPE_CHECKING:
     from typing import Self
 
-    import numpy.typing as npt
 
-
-class MatGF2(np.ndarray):
+class MatGF2(np.ndarray[tuple[int, ...], np.dtype[np.int_]]):
     r"""Custom implementation of :math:`\mathbb F_2` matrices. This class specializes `:class:np.ndarray` to the :math:`\mathbb F_2` field with increased efficiency."""
 
     def __new__(cls, data: npt.ArrayLike) -> Self:
@@ -186,7 +185,7 @@ def solve_f2_linear_system(mat: MatGF2, b: MatGF2) -> MatGF2:
     return MatGF2(_solve_f2_linear_system_jit(mat, b))
 
 
-@njit("uint8[::1](uint8[:,::1], uint8[::1])")
+@nb.njit("uint8[::1](uint8[:,::1], uint8[::1])")
 def _solve_f2_linear_system_jit(
     mat_data: npt.NDArray[np.uint8], b_data: npt.NDArray[np.uint8]
 ) -> npt.NDArray[np.uint8]:
@@ -225,7 +224,7 @@ def _solve_f2_linear_system_jit(
     return x
 
 
-@njit("uint8[:,::1](uint8[:,::1], uint64, boolean)")
+@nb.njit("uint8[:,::1](uint8[:,::1], uint64, boolean)")
 def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: bool) -> npt.NDArray[np.uint8]:
     r"""Return row echelon form (REF) or row-reduced echelon form (RREF) by performing Gaussian elimination.
 
@@ -291,7 +290,7 @@ def _elimination_jit(mat_data: npt.NDArray[np.uint8], ncols: int, full_reduce: b
     return mat_data
 
 
-@njit("uint8[:,::1](uint8[:,::1], uint8[:,::1])", parallel=True)
+@nb.njit("uint8[:,::1](uint8[:,::1], uint8[:,::1])", parallel=True)
 def _mat_mul_jit(m1: npt.NDArray[np.uint8], m2: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
     """See docstring of `:func:MatGF2.__matmul__` for details."""
     m, l = m1.shape
@@ -299,8 +298,8 @@ def _mat_mul_jit(m1: npt.NDArray[np.uint8], m2: npt.NDArray[np.uint8]) -> npt.ND
 
     res = np.zeros((m, n), dtype=np.uint8)
 
-    for i in prange(m):
-        for k in prange(l):
+    for i in nb.prange(m):
+        for k in nb.prange(l):
             if m1[i, k] == 1:
                 for j in range(n):
                     res[i, j] = np.bitwise_xor(res[i, j], m2[k, j])
