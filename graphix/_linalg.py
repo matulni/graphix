@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from typing import Self
 
 
-class MatGF2(np.ndarray):
+class MatGF2(npt.NDArray[np.uint8]):
     r"""Custom implementation of :math:`\mathbb F_2` matrices. This class specializes `:class:np.ndarray` to the :math:`\mathbb F_2` field with increased efficiency."""
 
     def __new__(cls, data: npt.ArrayLike) -> Self:
