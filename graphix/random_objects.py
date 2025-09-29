@@ -462,9 +462,9 @@ def rand_og_gflow(n: int, n_o: int, rng: Generator, meas_planes: Mapping[int, Pl
         meas_planes = {i: plane_choice[rng.integers(3)] for i in range(n_no)}
 
     shift = max(meas_planes) + 1
-    idx_node_mapping = {i: i + shift for i in range(n_o)}
+    idx_node_mapping = {i: i + shift for i in range(n_o)}  # Index to node mapping in the adjacency matrix.
 
-    c_matrix = np.zeros((n_no + 1, n - 1), dtype=np.uint8).view(MatGF2)
+    c_matrix = np.zeros((n_no + 1, n), dtype=np.uint8).view(MatGF2)
     adj_matrix = np.zeros((n, n), dtype=np.uint8).view(MatGF2)
 
     for k, (node, plane) in enumerate(meas_planes.items()):
@@ -479,7 +479,9 @@ def rand_og_gflow(n: int, n_o: int, rng: Generator, meas_planes: Mapping[int, Pl
     return OpenGraph(inside=graph, measurements=measurements, inputs=inputs, outputs=outputs)
 
 
-def _add_vertex(c_matrix: MatGF2, adj_matrix: MatGF2, k: int, plane: Plane, n_o: int, rng: Generator) -> tuple[MatGF2, MatGF2]:
+def _add_vertex(
+    c_matrix: MatGF2, adj_matrix: MatGF2, k: int, plane: Plane, n_o: int, rng: Generator
+) -> tuple[MatGF2, MatGF2]:
     """Add vertex to open graph.
 
     Parameters
@@ -505,32 +507,34 @@ def _add_vertex(c_matrix: MatGF2, adj_matrix: MatGF2, k: int, plane: Plane, n_o:
         Updated graph adjacency matrix.
     """
     k_shift = k + n_o
-    kernel = c_matrix[:k + 1, :k_shift].view(MatGF2).null_space()
-    g_vect = kernel[rng.integers(kernel.shape[0])]
-    if plane == Plane.XY:
-        c_dot, c_k = 1, {k: 0}
-    elif plane == Plane.YZ:
-        c_dot, c_k = 0, {k: 1}
-    elif plane == Plane.XZ:
-        c_dot, c_k = 1, {k: 1}
+    kernel = c_matrix[: k + 1, :k_shift].view(MatGF2).null_space()
+    g_vect = kernel[rng.integers(kernel.shape[0])]  # pick LC # `g_vect` has shape (k_shift + 1, )
+    c_vect = np.empty(k_shift + 1, dtype=np.uint8)
 
-    c_vect = _generate_rnd_gf2_vec(g_vect, c_dot, c_k, rng)
+    if plane == Plane.XY:
+        c_dot, c_k = 1, 0
+    elif plane == Plane.YZ:
+        c_dot, c_k = 0, 1
+    elif plane == Plane.XZ:
+        c_dot, c_k = 1, 1
+
+    c_vect[:k_shift] = _generate_rnd_gf2_vec(g_vect, c_dot, rng)
+    c_vect[-1] = c_k
 
     adj_matrix[k_shift, :k_shift] = g_vect
     adj_matrix[:k_shift, k_shift] = g_vect
-    c_matrix[k + 1, :k_shift] = c_vect
+    c_matrix[k + 1, : k_shift + 1] = c_vect
 
     return c_matrix.view(MatGF2), adj_matrix.view(MatGF2)
 
 
-def _generate_rnd_gf2_vec(g: npt.NDArray[np.uint8], c: int, x_k: Mapping[int, int], rng: Generator) -> npt.NDArray[np.uint8]:
-    r"""Generate a random vector :math:`x` over :math:`\mathbb F_2` such that :math:`x \dot g = c` with the constraint `x[x_k.keys()] = x_k.values()`.
+def _generate_rnd_gf2_vec(g: npt.NDArray[np.uint8], c: int, rng: Generator) -> npt.NDArray[np.uint8]:
+    r"""Generate a random vector :math:`x` over :math:`\mathbb F_2` such that :math:`x \dot g = c`.
 
     Parameters
     ----------
     g : npt.NDArray[np.uint8]
-    c : int
-    x_k : Mapping[int, int]
+    c : int (0 or 1)
     rng : Generator
 
     Returns
@@ -538,21 +542,16 @@ def _generate_rnd_gf2_vec(g: npt.NDArray[np.uint8], c: int, x_k: Mapping[int, in
     npt.NDArray[np.uint8]
         A random vector with `len(g)` elements and the appropriate constraints.
     """
-    incompatible_constraints = ValueError(r"It does not exist an `x` such that  $x \cdot g = c$, with the constraints in `x_k`.")
     result = rng.integers(0, 2, size=len(g), dtype=np.uint8)
-    for k, x in x_k.items():
-        result[k] = x
 
     idx_nonzero = np.flatnonzero(g)
 
-    if idx_nonzero.size == 0 and c != 0:
-        raise incompatible_constraints
+    if idx_nonzero.size == 0:
+        if c != 0:
+            raise ValueError(r"It does not exist an `x` such that  $x \cdot g = c$.")
+        return result
 
     if np.bitwise_xor.reduce(result[idx_nonzero]) != c:
-        # Indices of non-zero elements in `g` without constraint.
-        mask = np.setdiff1d(idx_nonzero, [*x_k])
-        if mask.size == 0:
-            raise incompatible_constraints
-        result[rng.choice(mask)] ^= 1
+        result[rng.choice(idx_nonzero)] ^= 1
 
     return result

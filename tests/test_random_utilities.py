@@ -192,31 +192,16 @@ class TestRandomOpenGraph:
         g = np.array([1, 0, 0], dtype=np.uint8)
         c = 1
 
-        # Test 1, with constraint
-        x_k = {1: 1}
-        x_ref = {0: np.array([1, 1, 0], dtype=np.uint8), 1: np.array([1, 1, 1], dtype=np.uint8)}
-        counts = {0: 0, 1: 0}
-
-        for _ in range(n_shots):
-            x = randobj._generate_rnd_gf2_vec(g, c, x_k, fx_rng)
-            for i in range(2):
-                if np.all(x == x_ref[i]):
-                    counts[i] += 1
-                    break
-            else:
-                pytest.fail(f"Generated impossible random vector x = {x}")
-
-        for count in counts.values():
-            assert count / n_shots == pytest.approx(0.5, abs=1 / np.sqrt(n_shots))
-
-        # Test 2, without constraints
-        x_k: dict[int, int] = {}
-        x_ref[2] = np.array([1, 0, 0], dtype=np.uint8)
-        x_ref[3] = np.array([1, 0, 1], dtype=np.uint8)
+        x_ref = {
+            0: np.array([1, 1, 0], dtype=np.uint8),
+            1: np.array([1, 1, 1], dtype=np.uint8),
+            2: np.array([1, 0, 0], dtype=np.uint8),
+            3: np.array([1, 0, 1], dtype=np.uint8),
+        }
         counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
         for _ in range(n_shots):
-            x = randobj._generate_rnd_gf2_vec(g, c, x_k, fx_rng)
+            x = randobj._generate_rnd_gf2_vec(g, c, fx_rng)
             for i in range(4):
                 if np.all(x == x_ref[i]):
                     counts[i] += 1
@@ -239,6 +224,6 @@ class TestRandomOpenGraph:
 
         n = 10
         n_o = 4
-        # for _ in range(5):
-        #     og = randobj.rand_og_gflow(n, n_o, fx_rng)
-        #     assert find_pflow(og) is not None
+        for _ in range(5):
+            og = randobj.rand_og_gflow(n, n_o, fx_rng)
+            assert find_pflow(og) is not None
