@@ -452,7 +452,11 @@ def rand_og_gflow(n: int, n_o: int, rng: Generator, meas_planes: Mapping[int, Pl
 
     Notes
     -----
-    This function implements the PGA algorithm designed by R. Pal.
+    This function implements the PGA algorithm presented in [1].
+
+    References
+    ----------
+    [1] "Generation of random open graph with gflow" Rajarsi Pal, Harold Ollivier, Graphix Workshop, Inria, 2024.
     """
     n_no = n - n_o  # Number of non-output nodes.
     if meas_planes is not None and len(meas_planes) != n_no:
@@ -508,7 +512,10 @@ def _add_vertex(
     """
     k_shift = k + n_o
     kernel = c_matrix[: k + 1, :k_shift].view(MatGF2).null_space()
-    g_vect = kernel[rng.integers(kernel.shape[0])]  # pick LC # `g_vect` has shape (k_shift + 1, )
+
+    # We pick a random linear combination of kernel-basis vector (with random )
+    mask = rng.choice([True, False], size=kernel.shape[0])
+    g_vect = np.bitwise_xor.reduce(kernel[mask], axis=0)  # `g_vect` has shape (k_shift + 1, )
     c_vect = np.empty(k_shift + 1, dtype=np.uint8)
 
     if plane == Plane.XY:
