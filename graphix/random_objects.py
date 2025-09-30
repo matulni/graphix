@@ -562,3 +562,37 @@ def _generate_rnd_gf2_vec(g: npt.NDArray[np.uint8], c: int, rng: Generator) -> n
         result[rng.choice(idx_nonzero)] ^= 1
 
     return result
+
+
+def _compute_gflow_rng_og(
+    c_matrix: MatGF2, adj_matrix: MatGF2, idx_node_mapping: Mapping[int, int]
+) -> tuple[dict[int, set[int]], dict[int, int]]:
+    """Compute gflow of generated random open graph.
+
+    Parameters
+    ----------
+    c_matrix : graphix._linalg.MatGF2
+        Correction matrix.
+    adj_matrix: graphix._linalg.MatGF2
+        Graph adjacency matrix.
+    idx_node_mapping: Mapping[int, int]
+        Index to node mapping in the adjacency matrix.
+
+    Returns
+    -------
+    dict[int, set[int]]
+        Gflow correction function. In a given pair (key, value), value is the set of qubits to be corrected for the measurement of qubit key.
+    dict[int, int]
+        Partial order between corrected qubits, such that the pair (key, value) corresponds to (node, depth).
+
+    Notes
+    -----
+    The problem of finding the gflow is partially solved during the open graph generation (see :func:`rand_og_flow`), in particular the creation of the correction matrix. The PGA algorithm exploits this feature to avoid recalculating the gflow by means of a general algorithm.
+    """
+    odd_c_matrix = adj_matrix.mat_mul(c_matrix.transpose())  # Columns are odd neighborhood of C matrix
+
+    for row, col in zip(c_matrix, odd_c_matrix.T):
+        union_set = np.bitwise_and(row, col)
+        # remove k element -> set to 0
+        # last non-zero element ?
+        # consider only outputs...
