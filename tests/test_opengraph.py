@@ -565,6 +565,7 @@ class TestOpenGraph:
             assert cflow is not None
             pattern = cflow.to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
+            assert cflow.is_well_formed()
         else:
             assert cflow is None
 
@@ -578,6 +579,7 @@ class TestOpenGraph:
             assert gflow is not None
             pattern = gflow.to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
+            assert gflow.is_well_formed()
         else:
             assert gflow is None
 
@@ -589,8 +591,10 @@ class TestOpenGraph:
 
         if test_case.has_pflow:
             assert pflow is not None
+            assert pflow.is_well_formed()
             pattern = pflow.to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
+            # assert pflow.is_well_formed()
         else:
             assert pflow is None
 

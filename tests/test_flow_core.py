@@ -81,11 +81,11 @@ def generate_gflow_0() -> GFlow[Measurement]:
 
     GFlow:
         g(0) = {2, 5}, g(1) = {3, 4}, g(2) = {4}, g(3) = {5}
-        {4, 5} > {0, 1, 2, 3}
+        {4, 5} > {2, 3} > {0, 1}
 
     Notes
     -----
-    This is the same open graph as in `:func: generate_causal_flow_1` but now we consider a gflow which has lower depth than the causal flow.
+    This is the same open graph as in `:func: generate_causal_flow_1` but now we consider a gflow.
     """
     og = OpenGraph(
         graph=nx.Graph([(0, 2), (2, 3), (1, 3), (2, 4), (3, 5)]),
@@ -96,7 +96,7 @@ def generate_gflow_0() -> GFlow[Measurement]:
     return GFlow(
         og=og,
         correction_function={0: {2, 5}, 1: {3, 4}, 2: {4}, 3: {5}},
-        partial_order_layers=[{4, 5}, {0, 1, 2, 3}],
+        partial_order_layers=[{4, 5}, {2, 3}, {0, 1}],
     )
 
 
@@ -152,7 +152,7 @@ def generate_gflow_2() -> GFlow[Plane]:
     return GFlow(
         og=og,
         correction_function={0: {4, 5}, 1: {3, 4, 5}, 2: {3, 4}},
-        partial_order_layers=[{3, 4}, {1}, {0, 2}],
+        partial_order_layers=[{3, 4, 5}, {1}, {0, 2}],
     )
 
 
@@ -279,13 +279,13 @@ def prepare_test_xzcorrections() -> list[XZCorrectionsTestCase]:
                         E((3, 1)),
                         E((3, 5)),
                         M(0),
-                        Z(3, {0}),
                         Z(4, {0}),
                         X(2, {0}),
+                        X(5, {0}),
                         M(1),
-                        Z(2, {1}),
                         Z(5, {1}),
                         X(3, {1}),
+                        X(4, {1}),
                         M(2),
                         X(4, {2}),
                         M(3),
@@ -369,6 +369,7 @@ class TestFlowPatternConversion:
     @pytest.mark.parametrize("test_case", prepare_test_xzcorrections())
     def test_flow_to_corrections(self, test_case: XZCorrectionsTestCase) -> None:
         flow = test_case.flow
+        assert flow.is_well_formed()
         corrections = flow.to_corrections()
         assert corrections.z_corrections == test_case.z_corr
         assert corrections.x_corrections == test_case.x_corr

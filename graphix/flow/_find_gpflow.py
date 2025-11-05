@@ -585,7 +585,7 @@ def _compute_topological_generations(ordering_matrix: MatGF2) -> list[list[int]]
     return generations
 
 
-def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_M_co]) -> list[set[int]] | None:
+def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_M_co]) -> tuple[frozenset[int], ...] | None:
     r"""Compute the partial order compatible with the correction matrix if it exists.
 
     Parameters
@@ -595,7 +595,7 @@ def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_M_co]) -> 
 
     Returns
     -------
-    layers : list[set[int]]
+    layers : tuple[set[int], ...]
         Partial order between corrected qubits in a layer form. The set `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`.
 
     or `None`
@@ -614,15 +614,15 @@ def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_M_co]) -> 
         return None  # The NC matrix is not a DAG, therefore there's no flow.
 
     layers = [
-        set(aog.og.output_nodes)
+        frozenset(aog.og.output_nodes)
     ]  # Output nodes are always in layer 0. If the open graph has flow, it must have outputs, so we never end up with an empty set at `layers[0]`.
 
     # If m >_c n, with >_c the flow partial order for two nodes m, n, then layer(n) > layer(m).
     # Therefore, we iterate the topological sort of the graph in _reverse_ order to obtain the order of measurements.
     col_tags = aog.non_outputs
-    layers.extend({col_tags[i] for i in idx_layer} for idx_layer in reversed(topo_gen))
+    layers.extend(frozenset({col_tags[i] for i in idx_layer}) for idx_layer in reversed(topo_gen))
 
-    return layers
+    return tuple(layers)
 
 
 def compute_correction_matrix(aog: AlgebraicOpenGraph[_M_co]) -> CorrectionMatrix[_M_co] | None:
