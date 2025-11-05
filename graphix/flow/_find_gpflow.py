@@ -244,21 +244,21 @@ class CorrectionMatrix(Generic[_M_co]):
     aog: AlgebraicOpenGraph[_M_co]
     c_matrix: MatGF2
 
-    def to_correction_function(self) -> dict[int, set[int]]:
+    def to_correction_function(self) -> dict[int, frozenset[int]]:
         r"""Transform the correction matrix into a correction function.
 
         Returns
         -------
-        correction_function : dict[int, set[int]]
+        correction_function : dict[int, frozenset[int]]
             Pauli (or generalised) flow correction function. `correction_function[i]` is the set of qubits correcting the measurement of qubit `i`.
         """
         row_tags = self.aog.non_inputs
         col_tags = self.aog.non_outputs
-        correction_function: dict[int, set[int]] = {}
+        correction_function: dict[int, frozenset[int]] = {}
         for node in col_tags:
             i = col_tags.index(node)
             correction_set = {row_tags[j] for j in np.flatnonzero(self.c_matrix[:, i])}
-            correction_function[node] = correction_set
+            correction_function[node] = frozenset(correction_set)
         return correction_function
 
 
@@ -595,8 +595,8 @@ def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_M_co]) -> 
 
     Returns
     -------
-    layers : tuple[set[int], ...]
-        Partial order between corrected qubits in a layer form. The set `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`.
+    layers : tuple[frozenset[int], ...]
+        Partial order between corrected qubits in a layer form. The frozenset `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`.
 
     or `None`
         If the correction matrix is not compatible with a partial order on the the open graph, in which case the associated ordering matrix is not a DAG. In the context of the flow-finding algorithm, this means that the input open graph does not have Pauli (or generalised) flow.
