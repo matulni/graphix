@@ -367,10 +367,14 @@ class PauliFlow(Generic[_M_co]):
         ic_set = self.og.graph.nodes - set(self.og.input_nodes)
 
         if self.correction_function.keys() != oc_set:
-            print("Pauli flow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph.")
+            print(
+                "Pauli flow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph."
+            )
             return False
         if self.partial_order_layers[0] != o_set or len(o_set) == 0:
-            print("Pauli flow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty.")
+            print(
+                "Pauli flow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty."
+            )
             return False
 
         past_and_present_nodes: set[int] = set()
@@ -378,7 +382,9 @@ class PauliFlow(Generic[_M_co]):
 
         for layer in reversed(self.partial_order_layers[1:]):
             if not set(layer).issubset(oc_set):
-                print("Pauli flow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits).")
+                print(
+                    "Pauli flow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits)."
+                )
                 return False
 
             past_and_present_nodes.update(layer)
@@ -386,54 +392,74 @@ class PauliFlow(Generic[_M_co]):
                 correction_set = set(self.correction_function[node])
 
                 if not correction_set.issubset(ic_set):
-                    print(f"Pauli flow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at p({node}) = {correction_set}.")
+                    print(
+                        f"Pauli flow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at p({node}) = {correction_set}."
+                    )
                     return False
 
                 meas = self.og.measurements[node].to_plane_or_axis()
 
                 for i in (correction_set - {node}) & past_and_present_nodes:
                     if self.og.measurements[i].to_plane_or_axis() not in {Axis.X, Axis.Y}:
-                        print(f"Pauli flow is not well formed. Nodes must be in the past of their correcting nodes that are not measured along the X or the Y axe (P1). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes must be in the past of their correcting nodes that are not measured along the X or the Y axe (P1). Error found at p({node}) = {correction_set}."
+                        )
                         return False
 
                 odd_neighbors = self.og.odd_neighbors(correction_set)
 
                 for i in (odd_neighbors - {node}) & past_and_present_nodes:
                     if self.og.measurements[i].to_plane_or_axis() not in {Axis.Y, Axis.Z}:
-                        print(f"Pauli flow is not well formed. The odd neighbourhood (except the corrected node and nodes measured along axes Y or Z) of the correcting nodes must be in the future of the corrected node (P2). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. The odd neighbourhood (except the corrected node and nodes measured along axes Y or Z) of the correcting nodes must be in the future of the corrected node (P2). Error found at p({node}) = {correction_set}."
+                        )
                         return False
 
                 closed_odd_neighbors = (odd_neighbors | correction_set) - (odd_neighbors & correction_set)
 
                 # This check must be done before adding the node to `past_and_present_nodes_y_meas`
                 if past_and_present_nodes_y_meas & closed_odd_neighbors:
-                    print(f"Pauli flow is not well formed. Nodes that are measured along axis Y and that are not in the future of the corrected node (except the corrected node itself) cannot be in the closed odd neighbourhood of the correcting set (P3). Error found at p({node}) = {correction_set}.")
+                    print(
+                        f"Pauli flow is not well formed. Nodes that are measured along axis Y and that are not in the future of the corrected node (except the corrected node itself) cannot be in the closed odd neighbourhood of the correcting set (P3). Error found at p({node}) = {correction_set}."
+                    )
                     return False
 
                 if meas == Plane.XY:
                     if not (node not in correction_set and node in odd_neighbors):
-                        print(f"Pauli flow is not well formed. Nodes measured on plane XY cannot be in their own correcting set and must belong to the odd neighbourhood of their own correcting set (P4). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured on plane XY cannot be in their own correcting set and must belong to the odd neighbourhood of their own correcting set (P4). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 elif meas == Plane.XZ:
                     if not (node in correction_set and node in odd_neighbors):
-                        print(f"Pauli flow is not well formed. Nodes measured on plane XZ must belong to their own correcting set and its odd neighbourhood (P5). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured on plane XZ must belong to their own correcting set and its odd neighbourhood (P5). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 elif meas == Plane.YZ:
                     if not (node in correction_set and node not in odd_neighbors):
-                        print(f"Pauli flow is not well formed. Nodes measured on plane YZ must belong to their own correcting set and cannot be in the odd neighbourhood of their own correcting set (P6). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured on plane YZ must belong to their own correcting set and cannot be in the odd neighbourhood of their own correcting set (P6). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 elif meas == Axis.X:
                     if node not in odd_neighbors:
-                        print(f"Pauli flow is not well formed. Nodes measured along axis X must belong to the odd neighbourhood of their own correcting set (P7). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured along axis X must belong to the odd neighbourhood of their own correcting set (P7). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 elif meas == Axis.Z:
                     if node not in correction_set:
-                        print(f"Pauli flow is not well formed. Nodes measured along axis Z must belong to their own correcting set (P8). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured along axis Z must belong to their own correcting set (P8). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 elif meas == Axis.Y:
                     past_and_present_nodes_y_meas.add(node)
                     if node not in closed_odd_neighbors:
-                        print(f"Pauli flow is not well formed. Nodes measured along axis Y must belong to the closed odd neighbourhood of their own correcting set (P9). Error found at p({node}) = {correction_set}.")
+                        print(
+                            f"Pauli flow is not well formed. Nodes measured along axis Y must belong to the closed odd neighbourhood of their own correcting set (P9). Error found at p({node}) = {correction_set}."
+                        )
                         return False
                 else:
                     assert_never(meas)
@@ -524,16 +550,22 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
         ic_set = self.og.graph.nodes - set(self.og.input_nodes)
 
         if self.correction_function.keys() != oc_set:
-            print("Gflow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph.")
+            print(
+                "Gflow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph."
+            )
             return False
         if self.partial_order_layers[0] != o_set or len(o_set) == 0:
-            print("Gflow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty.")
+            print(
+                "Gflow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty."
+            )
             return False
 
         past_and_present_nodes: set[int] = set()
         for layer in reversed(self.partial_order_layers[1:]):
             if not set(layer).issubset(oc_set):
-                print("Gflow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits).")
+                print(
+                    "Gflow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits)."
+                )
                 return False
 
             past_and_present_nodes.update(layer)
@@ -542,31 +574,43 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
                 correction_set = set(self.correction_function[node])
 
                 if not correction_set.issubset(ic_set):
-                    print(f"Gflow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at g({node}) = {correction_set}.")
+                    print(
+                        f"Gflow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at g({node}) = {correction_set}."
+                    )
                     return False
                 if (correction_set - {node}) & past_and_present_nodes:
-                    print(f"Gflow is not well formed. Nodes must be in the past of their correction set (G1). Error found at g({node}) = {correction_set}.")
+                    print(
+                        f"Gflow is not well formed. Nodes must be in the past of their correction set (G1). Error found at g({node}) = {correction_set}."
+                    )
                     return False
 
                 odd_neighbors = self.og.odd_neighbors(correction_set)
 
                 if (odd_neighbors - {node}) & past_and_present_nodes:
-                    print(f"Gflow is not well formed. The odd neighbourhood (except the corrected node) of the correcting nodes must be in the future of the corrected node (G2). Error found at g({node}) = {correction_set}.")
+                    print(
+                        f"Gflow is not well formed. The odd neighbourhood (except the corrected node) of the correcting nodes must be in the future of the corrected node (G2). Error found at g({node}) = {correction_set}."
+                    )
                     return False
 
                 plane = self.og.measurements[node].to_plane()
 
                 if plane == Plane.XY:
                     if not (node not in correction_set and node in odd_neighbors):
-                        print(f"Gflow is not well formed. Nodes measured on plane XY cannot be in their own correcting set and must belong to the odd neighbourhood of their own correcting set (G3). Error found at g({node}) = {correction_set}.")
+                        print(
+                            f"Gflow is not well formed. Nodes measured on plane XY cannot be in their own correcting set and must belong to the odd neighbourhood of their own correcting set (G3). Error found at g({node}) = {correction_set}."
+                        )
                         return False
                 elif plane == Plane.XZ:
                     if not (node in correction_set and node in odd_neighbors):
-                        print(f"Gflow is not well formed. Nodes measured on plane XZ must belong to their own correcting set and its odd neighbourhood (G4). Error found at g({node}) = {correction_set}.")
+                        print(
+                            f"Gflow is not well formed. Nodes measured on plane XZ must belong to their own correcting set and its odd neighbourhood (G4). Error found at g({node}) = {correction_set}."
+                        )
                         return False
                 elif plane == Plane.YZ:
                     if not (node in correction_set and node not in odd_neighbors):
-                        print(f"Gflow is not well formed. Nodes measured on plane YZ must belong to their own correcting set and cannot be in the odd neighbourhood of their own correcting set (G5). Error found at g({node}) = {correction_set}.")
+                        print(
+                            f"Gflow is not well formed. Nodes measured on plane YZ must belong to their own correcting set and cannot be in the odd neighbourhood of their own correcting set (G5). Error found at g({node}) = {correction_set}."
+                        )
                         return False
                 else:
                     assert_never(plane)
@@ -658,16 +702,22 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
         ic_set = self.og.graph.nodes - set(self.og.input_nodes)
 
         if self.correction_function.keys() != oc_set:
-            print("Causal flow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph.")
+            print(
+                "Causal flow is not well formed. The domain of the correction function must be the set of non-output nodes (measured qubits) of the open graph."
+            )
             return False
         if self.partial_order_layers[0] != o_set or len(o_set) == 0:
-            print("Causal flow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty.")
+            print(
+                "Causal flow is not well formed. The first layer of the partial order must contain all the output nodes of the open graph and cannot be empty."
+            )
             return False
 
         past_and_present_nodes: set[int] = set()
         for layer in reversed(self.partial_order_layers[1:]):
             if not set(layer).issubset(oc_set):
-                print("Causal flow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits).")
+                print(
+                    "Causal flow is not well formed. Nodes in the partial order beyond the first layer must be non-output nodes (measured qubits)."
+                )
                 return False
 
             past_and_present_nodes.update(layer)
@@ -676,22 +726,32 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
                 correction_set = set(self.correction_function[node])
 
                 if len(correction_set) != 1:
-                    print(f"Causal flow is not well formed. Correction sets can have 1 element only. Error found at c({node}) = {correction_set}.")
+                    print(
+                        f"Causal flow is not well formed. Correction sets can have 1 element only. Error found at c({node}) = {correction_set}."
+                    )
                     return False
                 if not correction_set.issubset(ic_set):
-                    print(f"Causal flow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at c({node}) = {correction_set}.")
+                    print(
+                        f"Causal flow is not well formed. The image of the correction function must be a subset of the non-input nodes (prepared qubits) of the open graph. Error found at c({node}) = {correction_set}."
+                    )
                     return False
 
                 neighbors = self.og.neighbors(correction_set)
 
                 if node not in neighbors:
-                    print(f"Causal flow is not well formed. A node and its corrector must be neighbors (C1). Error found at c({node}) = {correction_set}.")
+                    print(
+                        f"Causal flow is not well formed. A node and its corrector must be neighbors (C1). Error found at c({node}) = {correction_set}."
+                    )
                     return False
                 if correction_set & past_and_present_nodes:
-                    print(f"Causal flow is not well formed. Nodes must be in the past of their correction set (C2). Error found at c({node}) = {correction_set}.")
+                    print(
+                        f"Causal flow is not well formed. Nodes must be in the past of their correction set (C2). Error found at c({node}) = {correction_set}."
+                    )
                     return False
                 if (neighbors - {node}) & past_and_present_nodes:
-                    print(f"Causal flow is not well formed. Neighbors of the correcting nodes (except the corrected node) must be in the future of the corrected node (C3). Error found at c({node}) = {correction_set}.")
+                    print(
+                        f"Causal flow is not well formed. Neighbors of the correcting nodes (except the corrected node) must be in the future of the corrected node (C3). Error found at c({node}) = {correction_set}."
+                    )
                     return False
 
         if {*o_set, *past_and_present_nodes} != set(self.og.graph.nodes):
