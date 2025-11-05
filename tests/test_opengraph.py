@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from graphix.command import E
-from graphix.fundamentals import Plane
+from graphix.fundamentals import Axis, Plane
 from graphix.measurements import Measurement
 from graphix.opengraph import OpenGraph
 from graphix.pattern import Pattern
@@ -591,10 +591,9 @@ class TestOpenGraph:
 
         if test_case.has_pflow:
             assert pflow is not None
-            assert pflow.is_well_formed()
             pattern = pflow.to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
-            # assert pflow.is_well_formed()
+            assert pflow.is_well_formed()
         else:
             assert pflow is None
 
@@ -625,8 +624,40 @@ class TestOpenGraph:
         avg = sum(results) / 3
         assert avg == pytest.approx(1)
 
+    def test_eq(self) -> None:
+        og_1 = OpenGraph(
+            graph=nx.Graph([(0, 1), (1, 2), (2, 3)]),
+            input_nodes=[0],
+            output_nodes=[3],
+            measurements=dict.fromkeys(range(3), Plane.XY),
+        )
+        og_2 = OpenGraph(
+            graph=nx.Graph([(0, 1), (1, 2), (2, 3)]),
+            input_nodes=[0],
+            output_nodes=[3],
+            measurements=dict.fromkeys(range(3), Axis.X),
+        )
+        assert og_1 == og_1  # noqa: PLR0124
+        assert og_1 != og_2
+        assert og_2 == og_2  # noqa: PLR0124
 
-# TODO: Add test `OpenGraph.is_close`
+    def test_isclose(self) -> None:
+        og_1 = OpenGraph(
+            graph=nx.Graph([(0, 1), (1, 2), (2, 3)]),
+            input_nodes=[0],
+            output_nodes=[3],
+            measurements=dict.fromkeys(range(3), Measurement(0.1, Plane.XY)),
+        )
+        og_2 = OpenGraph(
+            graph=nx.Graph([(0, 1), (1, 2), (2, 3)]),
+            input_nodes=[0],
+            output_nodes=[3],
+            measurements=dict.fromkeys(range(3), Measurement(0.15, Plane.XY)),
+        )
+        assert og_1.isclose(og_2, abs_tol=0.1)
+        assert not og_1.isclose(og_2)
+
+
 # TODO: rewrite as parametric tests
 
 # Tests composition of two graphs
