@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
     from numpy.random import Generator
 
+    from graphix.opengraph import _M_co, _PM_co
+
 
 def generate_causal_flow_0() -> CausalFlow[Plane]:
     """Generate causal flow on linear open graph.
@@ -498,6 +500,28 @@ class TestXZCorrections:
             ValueError, match=r"Values of input mapping contain labels which are not nodes of the input open graph."
         ):
             XZCorrections.from_measured_nodes_mapping(og=og, x_corrections={0: {4}})
+
+
+class TestFlow:
+    """Bundle for unit tests of :class:`PauliFlow` and children."""
+
+    @pytest.mark.parametrize("test_case", [generate_causal_flow_0(), generate_causal_flow_1()])
+    def test_from_correction_function_cflow(self, test_case: CausalFlow[_PM_co]) -> None:
+        f = CausalFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
+
+    @pytest.mark.parametrize("test_case", [generate_gflow_0(), generate_gflow_1(), generate_gflow_2()])
+    def test_from_correction_function_gflow(self, test_case: GFlow[_PM_co]) -> None:
+        f = GFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
+
+    @pytest.mark.parametrize("test_case", [generate_pauli_flow_0(), generate_pauli_flow_1()])
+    def test_from_correction_function_pauli_flow(self, test_case: PauliFlow[_M_co]) -> None:
+        f = PauliFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
 
 
 class TestIncorrectFlows:
