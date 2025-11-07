@@ -101,7 +101,7 @@ class OpenGraph(Generic[_M_co]):
 
         meas_planes = pattern.get_meas_plane()
         meas_angles = pattern.get_angles()
-        measurements: Mapping[int, Measurement] = {
+        measurements: dict[int, Measurement] = {
             node: Measurement(meas_angles[node], meas_planes[node]) for node in meas_angles
         }
 

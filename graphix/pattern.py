@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import warnings
+from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from dataclasses import dataclass
@@ -17,13 +18,14 @@ from typing import TYPE_CHECKING, SupportsFloat, TypeVar
 import networkx as nx
 from typing_extensions import assert_never, override
 
-from graphix import command, optimization, parameter
+import graphix.flow.core as flow  # to avoid circular imports
+from graphix import command, opengraph, optimization, parameter
 from graphix.clifford import Clifford
 from graphix.command import Command, CommandKind
 from graphix.fundamentals import Axis, Plane, Sign
 from graphix.gflow import find_flow, find_gflow, get_layers
 from graphix.graphsim import GraphState
-from graphix.measurements import Outcome, PauliMeasurement, toggle_outcome
+from graphix.measurements import Measurement, Outcome, PauliMeasurement, toggle_outcome
 from graphix.pretty_print import OutputFormat, pattern_to_str
 from graphix.simulator import PatternSimulator
 from graphix.states import BasicStates
@@ -1066,6 +1068,64 @@ class Pattern:
             measurement commands in the order of measurements
         """
         yield from (cmd for cmd in self if cmd.kind == CommandKind.M)
+
+    def extract_causal_flow(self) -> flow.CausalFlow[Measurement] | None:
+        graph: nx.Graph[int] = nx.Graph()
+        graph.add_nodes_from(self.input_nodes)
+        measurements: dict[int, Measurement] = {}
+        correction_function: dict[int, set[int]] = {}
+
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N:
+                graph.add_node(cmd.node)
+            elif cmd.kind == CommandKind.E:
+                u, v = cmd.nodes
+                if graph.has_edge(u, v):
+                    graph.remove_edge(u, v)
+                else:
+                    graph.add_edge(u, v)
+            elif cmd.kind == CommandKind.M:
+                node = cmd.node
+                measurements[node] = Measurement(cmd.angle, cmd.plane)
+                if cmd.plane in {Plane.XZ, Plane.YZ}:
+                    return None
+            elif cmd.kind == CommandKind.X:
+                corrected_node = cmd.node
+                for measured_node in cmd.domain:
+                    if measured_node in correction_function:
+                        return None  # Correcting sets in causal flows can have one element only.
+                    correction_function[measured_node] = {corrected_node}
+
+        og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
+        return flow.CausalFlow.from_correction_function(og, correction_function)
+
+    def extract_gflow(self) -> flow.GFlow[Measurement] | None:
+        graph: nx.Graph[int] = nx.Graph()
+        graph.add_nodes_from(self.input_nodes)
+        measurements: dict[int, Measurement] = {}
+        correction_function: dict[int, set[int]] = defaultdict(set)
+
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N:
+                graph.add_node(cmd.node)
+            elif cmd.kind == CommandKind.E:
+                u, v = cmd.nodes
+                if graph.has_edge(u, v):
+                    graph.remove_edge(u, v)
+                else:
+                    graph.add_edge(u, v)
+            elif cmd.kind == CommandKind.M:
+                node = cmd.node
+                measurements[node] = Measurement(cmd.angle, cmd.plane)
+                if cmd.plane in {Plane.XZ, Plane.YZ}:
+                    correction_function[node].add(node)
+            elif cmd.kind == CommandKind.X:
+                corrected_node = cmd.node
+                for measured_node in cmd.domain:
+                    correction_function[measured_node].add(corrected_node)
+
+        og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
+        return flow.GFlow.from_correction_function(og, correction_function)
 
     def get_meas_plane(self) -> dict[int, Plane]:
         """Get measurement plane from the pattern.
