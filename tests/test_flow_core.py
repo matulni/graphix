@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
     from numpy.random import Generator
 
+    from graphix.opengraph import _M_co, _PM_co
+
 
 def generate_causal_flow_0() -> CausalFlow[Plane]:
     """Generate causal flow on linear open graph.
@@ -583,3 +585,153 @@ class TestXZCorrections:
             ValueError, match=r"Values of input mapping contain labels which are not nodes of the input open graph."
         ):
             XZCorrections.from_measured_nodes_mapping(og=og, x_corrections={0: {4}})
+
+
+class TestFlow:
+    """Bundle for unit tests of :class:`PauliFlow` and children."""
+
+    @pytest.mark.parametrize("test_case", [generate_causal_flow_0(), generate_causal_flow_1()])
+    def test_from_correction_function_cflow(self, test_case: CausalFlow[_PM_co]) -> None:
+        f = CausalFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
+
+    @pytest.mark.parametrize("test_case", [generate_gflow_0(), generate_gflow_1(), generate_gflow_2()])
+    def test_from_correction_function_gflow(self, test_case: GFlow[_PM_co]) -> None:
+        f = GFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
+
+    @pytest.mark.parametrize("test_case", [generate_pauli_flow_0(), generate_pauli_flow_1()])
+    def test_from_correction_function_pauli_flow(self, test_case: PauliFlow[_M_co]) -> None:
+        f = PauliFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f is not None
+        assert f.is_well_formed()
+
+
+class TestIncorrectFlows:
+    """Bundle for unit tests of :func:`PauliFlow.is_well_formed` (and children) on incorrect flows. Correct flows are extensively tested in `tests.test_opengraph.py`."""
+
+    og_c = OpenGraph(
+        graph=nx.Graph([(0, 1), (1, 2), (2, 3)]),
+        input_nodes=[0],
+        output_nodes=[3],
+        measurements=dict.fromkeys(range(3), Plane.XY),
+    )
+    og_g = OpenGraph(
+        graph=nx.Graph([(0, 3), (0, 4), (1, 4), (2, 4)]),
+        input_nodes=[0],
+        output_nodes=[3, 4],
+        measurements={0: Plane.XY, 1: Plane.YZ, 2: Plane.XZ},
+    )
+    og_p = OpenGraph(
+        graph=nx.Graph([(0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (4, 6), (5, 7)]),
+        input_nodes=[0, 1],
+        output_nodes=[6, 7],
+        measurements={
+            0: Measurement(0.1, Plane.XY),  # XY
+            1: Measurement(0.1, Plane.XY),  # XY
+            2: Measurement(0.0, Plane.XY),  # X
+            3: Measurement(0.1, Plane.XY),  # XY
+            4: Measurement(0.0, Plane.XY),  # X
+            5: Measurement(0.5, Plane.XY),  # Y
+        },
+    )
+
+    @pytest.mark.parametrize(
+        "test_case",
+        [
+            # Incomplete correction function
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {1}, 1: {2}},
+                partial_order_layers=[{3}, {2}, {1}, {0}],
+            ),
+            # Incomplete partial order
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {1}, 1: {2}},
+                partial_order_layers=[{2}, {1}, {0}],
+            ),
+            # Wrong correction function
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {0}, 1: {2}},
+                partial_order_layers=[{3}, {2}, {1}, {0}],
+            ),
+            # Wrong correction function
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {0, 1}, 1: {2}},
+                partial_order_layers=[{3}, {2}, {1}, {0}],
+            ),
+            # Wrong correction function
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {0}, 1: set()},
+                partial_order_layers=[{3}, {2}, {1}, {0}],
+            ),
+            # Wrong partial order
+            CausalFlow(
+                og=og_c,
+                correction_function={0: {0}, 1: {2}},
+                partial_order_layers=[{3}, {1, 2}, {0}],
+            ),
+            # Wrong correction function
+            GFlow(
+                og=og_g,
+                correction_function={0: {0, 3}, 1: {1}, 2: {2, 3, 4}},
+                partial_order_layers=[{3, 4}, {1}, {0, 2}],
+            ),
+            # Wrong correction function
+            GFlow(
+                og=og_g,
+                correction_function={0: {3}, 1: {1}, 2: {3, 4}},
+                partial_order_layers=[{3, 4}, {1}, {0, 2}],
+            ),
+            # Wrong correction function
+            GFlow(
+                og=og_g,
+                correction_function={0: {3}, 1: {1, 4}, 2: {2, 3, 4}},
+                partial_order_layers=[{3, 4}, {1}, {0, 2}],
+            ),
+            # Partial order with duplicates
+            GFlow(
+                og=og_g,
+                correction_function={0: {3}, 1: {1}, 2: {3, 4}},
+                partial_order_layers=[{3, 4}, {1, 0}, {0, 2}],
+            ),
+            # Wrong partial order duplicates
+            GFlow(
+                og=og_g,
+                correction_function={0: {3}, 1: {1}, 2: {3, 4}},
+                partial_order_layers=[{3, 4}, {1, 0, 2}],
+            ),
+            # Nodes in partial order not in open graph
+            PauliFlow(
+                og=og_p,
+                correction_function={0: {2, 5, 7}, 1: {3, 4}, 2: {4, 7}, 3: {5, 6, 7}, 4: {6}, 5: {7}},
+                partial_order_layers=[{6, 7}, {3, 100}, {0, 1, 2, 4, 5}],
+            ),
+            # Inputs in co-domain of correction function
+            PauliFlow(
+                og=og_p,
+                correction_function={0: {0, 2, 5, 7}, 1: {3, 4}, 2: {4, 7}, 3: {5, 6, 7}, 4: {6}, 5: {7}},
+                partial_order_layers=[{6, 7}, {3}, {0, 1, 2, 4, 5}],
+            ),
+            # Wrong correction function
+            PauliFlow(
+                og=og_p,
+                correction_function={0: {2, 5, 7}, 1: {3, 4}, 2: {3, 4, 7}, 3: {5, 6, 7}, 4: {6}, 5: {7}},
+                partial_order_layers=[{6, 7}, {3}, {0, 1, 2, 4, 5}],
+            ),
+            # Wrong partial order
+            PauliFlow(
+                og=og_p,
+                correction_function={0: {2, 5, 7}, 1: {3, 4}, 2: {4, 7}, 3: {5, 6, 7}, 4: {6}, 5: {7}},
+                partial_order_layers=[{6, 7}, {3, 0, 1, 2, 4, 5}],
+            ),
+        ],
+    )
+    def test_flow_is_well_formed(self, test_case: PauliFlow[Plane | Axis]) -> None:
+        assert not test_case.is_well_formed()

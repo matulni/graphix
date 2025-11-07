@@ -14,7 +14,15 @@ from typing_extensions import override
 
 import graphix.pattern
 from graphix.command import E, M, N, X, Z
-from graphix.flow._find_gpflow import CorrectionMatrix, _M_co, _PM_co, compute_partial_order_layers
+from graphix.flow._find_gpflow import (
+    AlgebraicOpenGraph,
+    CorrectionMatrix,
+    PlanarAlgebraicOpenGraph,
+    _M_co,
+    _PM_co,
+    compute_partial_order_layers,
+)
+from graphix.fundamentals import Plane
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -291,7 +299,7 @@ class PauliFlow(Generic[_M_co]):
     def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_M_co]) -> Self | None:
         """Initialize a Pauli flow object from a matrix encoding a correction function.
 
-        Attributes
+        Parameters
         ----------
         correction_matrix : CorrectionMatrix[_M_co]
             Algebraic representation of the correction function.
@@ -315,6 +323,46 @@ class PauliFlow(Generic[_M_co]):
             return None
 
         return cls(correction_matrix.aog.og, correction_function, partial_order_layers)
+
+    @classmethod
+    def from_correction_function(
+        cls, og: OpenGraph[_M_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> Self | None:
+        """Initialize a `PauliFlow` object from a correction function.
+
+        Parameters
+        ----------
+        og : OpenGraph[_M_co]
+        correction_function : Mapping[int, AbstractSet[int]]
+
+        Returns
+        -------
+        Self | None
+            A Pauli flow if the correction function is correct and compatible with a partial order on the open graph nodes, ``None`` otherwise.
+
+        Notes
+        -----
+        This method verifies that:
+            - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
+            - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
+        Then, it attempts to calculate a partial measurement order on the input open graph compatible with the input correction function. See Lemma 3.12, and Theorem 3.1 in Ref. [1].
+
+        References
+        ----------
+        [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
+        """
+        if not _check_correction_function_domain(og, correction_function):
+            raise ValueError(
+                "Invalid correction function. The domain must be the set of non-output nodes (measured qubits) of the open graph."
+            )
+        if not _check_correction_function_image(og, correction_function):
+            raise ValueError(
+                "Invalid correction function. The image must be a subset of the non-input nodes (prepared qubits) of the open graph."
+            )
+
+        aog = AlgebraicOpenGraph(og)
+        correction_matrix = CorrectionMatrix.from_correction_function(aog, correction_function)
+        return cls.from_correction_matrix(correction_matrix)
 
     def to_corrections(self) -> XZCorrections[_M_co]:
         """Compute the X and Z corrections induced by the Pauli flow encoded in `self`.
@@ -365,6 +413,72 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
     """
 
     @override
+    @classmethod
+    def from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
+        """Initialize a `GFlow` object from a matrix encoding a correction function.
+
+        Parameters
+        ----------
+        correction_matrix : CorrectionMatrix[_PM_co]
+            Algebraic representation of the correction function.
+
+        Returns
+        -------
+        Self | None
+            A gflow if it exists, ``None`` otherwise.
+
+        Notes
+        -----
+        This method verifies if there exists a partial measurement order on the input open graph compatible with the input correction matrix. See Lemma 3.12, and Theorem 3.1 in Ref. [1]. Failure to find a partial order implies the non-existence of a generalised flow if the correction matrix was calculated by means of Algorithms 2 and 3 in [1].
+
+        References
+        ----------
+        [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
+        """
+        return super().from_correction_matrix(correction_matrix)
+
+    @override
+    @classmethod
+    def from_correction_function(
+        cls, og: OpenGraph[_PM_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> Self | None:
+        """Initialize a `GFlow` object from a correction function.
+
+        Parameters
+        ----------
+        og : OpenGraph[_PM_co]
+        correction_function : Mapping[int, AbstractSet[int]]
+
+        Returns
+        -------
+        Self | None
+            A gflow if the correction function is correct and compatible with a partial order on the open graph nodes, ``None`` otherwise.
+
+        Notes
+        -----
+        This method verifies that:
+            - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
+            - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
+        Then, it attempts to calculate a partial measurement order on the input open graph compatible with the input correction function. See Lemma 3.12, and Theorem 3.1 in Ref. [1].
+
+        References
+        ----------
+        [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
+        """
+        if not _check_correction_function_domain(og, correction_function):
+            raise ValueError(
+                "Invalid correction function. The domain must be the set of non-output nodes (measured qubits) of the open graph."
+            )
+        if not _check_correction_function_image(og, correction_function):
+            raise ValueError(
+                "Invalid correction function. The image must be a subset of the non-input nodes (prepared qubits) of the open graph."
+            )
+
+        aog = PlanarAlgebraicOpenGraph(og)
+        correction_matrix = CorrectionMatrix.from_correction_function(aog, correction_function)
+        return cls.from_correction_matrix(correction_matrix)
+
+    @override
     def to_corrections(self) -> XZCorrections[_PM_co]:
         r"""Compute the XZ-corrections induced by the generalised flow encoded in `self`.
 
@@ -408,6 +522,58 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
     [1] Browne et al., 2007 New J. Phys. 9 250 (arXiv:quant-ph/0702212).
 
     """
+
+    @override
+    @classmethod
+    def from_correction_function(
+        cls, og: OpenGraph[_PM_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> Self | None:
+        """Initialize a `CausalFlow` object from a correction function.
+
+        Parameters
+        ----------
+        og : OpenGraph[_PM_co]
+        correction_function : Mapping[int, AbstractSet[int]]
+
+        Returns
+        -------
+        Self | None
+            A causal flow if the correction function is correct and compatible with a partial order on the open graph nodes, ``None`` otherwise.
+
+        Notes
+        -----
+        This method verifies that:
+            - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
+            - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph, and the correction sets have one element only.
+            - The measurement planes of the open graph are XY (not enforced by the static type-checker).
+        Then, it attempts to calculate a partial measurement order on the input open graph compatible with the input correction function.
+        """
+        if not _check_correction_function_domain(og, correction_function):
+            raise ValueError(
+                "Invalid correction function. The domain must be the set of non-output nodes (measured qubits) of the open graph."
+            )
+
+        ic_set = og.graph.nodes - set(og.input_nodes)
+        relations: list[tuple[int, int]] = []
+        for node, c_set in correction_function.items():
+            if not (set(c_set).issubset(ic_set) and len(c_set) == 1):
+                raise ValueError(
+                    "Invalid correction function. Correction sets can have 1 element only and must be a subset of the non-input nodes (prepared qubits) of the open graph."
+                )
+            if og.measurements[node].to_plane() in {Plane.XZ, Plane.YZ}:
+                raise ValueError("Open graph can only have XY-plane measurements.")
+            c_node, *_ = c_set
+            relations.append((node, c_node))
+
+        partial_order_layers = _dag_to_partial_order_layers(nx.DiGraph(relations))
+
+        if partial_order_layers is None:
+            return None
+
+        # The first element in the output of `_dag_to_partial_order_layers(dag)` may be just a subset of the output nodes.
+        partial_order_layers_tuple = frozenset(og.output_nodes), *partial_order_layers[1:]
+
+        return cls(og, correction_function, partial_order_layers_tuple)
 
     @override
     @classmethod
@@ -494,3 +660,18 @@ def _dag_to_partial_order_layers(dag: nx.DiGraph[int]) -> list[frozenset[int]] |
         return None
 
     return [frozenset(layer) for layer in topo_gen]
+
+
+def _check_correction_function_domain(
+    og: OpenGraph[_M_co], correction_function: Mapping[int, AbstractSet[int]]
+) -> bool:
+    """Verify that the domain of the correction function is the set of  non-output nodes of the open graph."""
+    oc_set = og.graph.nodes - set(og.output_nodes)
+    return correction_function.keys() == oc_set
+
+
+def _check_correction_function_image(og: OpenGraph[_M_co], correction_function: Mapping[int, AbstractSet[int]]) -> bool:
+    """Verify that the image of the correction function is a subset of  non-input nodes of the open graph."""
+    ic_set = og.graph.nodes - set(og.input_nodes)
+    image = set().union(*correction_function.values())
+    return image.issubset(ic_set)
