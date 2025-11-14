@@ -6,6 +6,7 @@ Output correctness is verified by checking if the resulting pattern is determini
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, NamedTuple
 
 import networkx as nx
@@ -15,7 +16,7 @@ import pytest
 from graphix.command import E
 from graphix.fundamentals import Axis, Plane
 from graphix.measurements import Measurement
-from graphix.opengraph import OpenGraph
+from graphix.opengraph import OpenGraph, OpenGraphError
 from graphix.pattern import Pattern
 from graphix.random_objects import rand_circuit
 from graphix.states import PlanarState
@@ -907,3 +908,29 @@ class TestOpenGraph:
         assert compare(og, og_ref)
         assert mapping.keys() <= mapping_complete.keys()
         assert set(mapping.values()) <= set(mapping_complete.values())
+
+    def test_compose_exception(self) -> None:
+        g: nx.Graph[int] = nx.Graph([(0, 1)])
+        inputs = [0]
+        outputs = [1]
+        mapping = {0: 0, 1: 1}
+
+        og1 = OpenGraph(g, inputs, outputs, measurements={0: Measurement(0, Plane.XY)})
+        og2 = OpenGraph(g, inputs, outputs, measurements={0: Measurement(0.5, Plane.XY)})
+
+        with pytest.raises(
+            OpenGraphError,
+            match=re.escape(
+                "Attempted to merge nodes with different measurements: (0, Measurement(angle=0.5, plane=Plane.XY)) -> (0, Measurement(angle=0, plane=Plane.XY))."
+            ),
+        ):
+            og1.compose(og2, mapping)
+
+        og3 = OpenGraph(g, inputs, outputs, measurements={0: Plane.XY})
+        og4 = OpenGraph(g, inputs, outputs, measurements={0: Plane.XZ})
+
+        with pytest.raises(
+            OpenGraphError,
+            match=re.escape("Attempted to merge nodes with different measurements: (0, Plane.XZ) -> (0, Plane.XY)."),
+        ):
+            og3.compose(og4, mapping)

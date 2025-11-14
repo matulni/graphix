@@ -278,7 +278,6 @@ class OpenGraph(Generic[_M_co]):
             correction_matrix
         )  # The constructor can return `None` if the correction matrix is not compatible with any partial order on the open graph.
 
-    # TODO: Generalise `compose` to any type of OpenGraph
     def compose(self, other: OpenGraph[_M_co], mapping: Mapping[int, int]) -> tuple[OpenGraph[_M_co], dict[int, int]]:
         r"""Compose two open graphs by merging subsets of nodes from ``self`` and ``other``, and relabeling the nodes of ``other`` that were not merged.
 
@@ -327,7 +326,7 @@ class OpenGraph(Generic[_M_co]):
                 continue
 
             if not equal_measurements(vm, um):
-                raise OpenGraphError(f"Attempted to merge nodes {v}:{u} but measurements differ: {vm} vs {um}.")
+                raise OpenGraphError(f"Attempted to merge nodes with different measurements: {v, vm} -> {u, um}.")
 
         shift = max(*self.graph.nodes, *mapping.values()) + 1
 
