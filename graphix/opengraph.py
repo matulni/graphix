@@ -11,11 +11,11 @@ from graphix.flow._find_cflow import find_cflow
 from graphix.flow._find_gpflow import AlgebraicOpenGraph, PlanarAlgebraicOpenGraph, compute_correction_matrix
 from graphix.flow.core import CausalFlow, GFlow, PauliFlow
 from graphix.fundamentals import AbstractMeasurement, AbstractPlanarMeasurement
-from graphix.measurements import Measurement
 
 if TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Mapping, Sequence
 
+    from graphix.measurements import Measurement
     from graphix.pattern import Pattern
 
 # TODO: Maybe move these definitions to graphix.fundamentals and graphix.measurements ? Now they are redefined in graphix.flow._find_gpflow, not very elegant.
@@ -46,7 +46,8 @@ class OpenGraph(Generic[_M_co]):
     -------
     >>> import networkx as nx
     >>> from graphix.fundamentals import Plane
-    >>> from graphix.opengraph import OpenGraph, Measurement
+    >>> from graphix.opengraph import OpenGraph
+    >>> from graphix.measurements import Measurement
     >>>
     >>> graph = nx.Graph([(0, 1), (1, 2)])
     >>> measurements = {i: Measurement(0.5 * i, Plane.XY) for i in range(2)}
@@ -81,39 +82,18 @@ class OpenGraph(Generic[_M_co]):
         if len(outputs) != len(self.output_nodes):
             raise ValueError("Output nodes contain duplicates.")
 
-    @staticmethod
-    def from_pattern(pattern: Pattern) -> OpenGraph[Measurement]:
-        """Initialise an `OpenGraph[Measurement]` object from the underlying resource-state graph of the input measurement pattern.
-
-        Parameters
-        ----------
-        pattern : Pattern
-            The input pattern.
-
-        Returns
-        -------
-        OpenGraph[Measurement]
-        """
-        graph = pattern.extract_graph()
-
-        input_nodes = pattern.input_nodes
-        output_nodes = pattern.output_nodes
-
-        meas_planes = pattern.get_meas_plane()
-        meas_angles = pattern.get_angles()
-        measurements: dict[int, Measurement] = {
-            node: Measurement(meas_angles[node], meas_planes[node]) for node in meas_angles
-        }
-
-        return OpenGraph(graph, input_nodes, output_nodes, measurements)
-
-    def to_pattern(self: OpenGraph[Measurement]) -> Pattern | None:
+    def to_pattern(self: OpenGraph[Measurement]) -> Pattern:
         """Extract a deterministic pattern from an `OpenGraph[Measurement]` if it exists.
 
         Returns
         -------
-        Pattern | None
-            A deterministic pattern on the open graph. If it does not exist, it returns `None`.
+        Pattern
+            A deterministic pattern on the open graph.
+
+        Raises
+        ------
+        OpenGraphError
+            If the open graph does not have flow.
 
         Notes
         -----
@@ -134,7 +114,7 @@ class OpenGraph(Generic[_M_co]):
         if pflow is not None:
             return pflow.to_corrections().to_pattern()
 
-        return None
+        raise OpenGraphError("The open graph does not have flow. It does not support a deterministic pattern.")
 
     def __eq__(self, other: object) -> bool:
         """Check if two open graphs are equal.
@@ -382,3 +362,7 @@ def _compare_opengraph_structure(og_1: OpenGraph[_M_co], og_2: OpenGraph[_M_co])
         return False
 
     return set(og_1.measurements.keys()) == set(og_2.measurements.keys())
+
+
+class OpenGraphError(Exception):
+    """Exception subclass to handle incorrect open graphs."""
