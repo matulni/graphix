@@ -684,6 +684,80 @@ class TestPattern:
         ):
             p1.compose(p2, mapping={0: 3})
 
+    # Extract causal flow from random circuits
+    @pytest.mark.skip(reason="Fix transpilation #349")
+    @pytest.mark.parametrize("jumps", range(1, 11))
+    def test_extract_causal_flow_0(self, fx_bg: PCG64, jumps: int) -> None:
+        rng = Generator(fx_bg.jumped(jumps))
+        nqubits = 4
+        depth = 2
+        circuit_1 = rand_circuit(nqubits, depth, rng, use_ccx=True)
+        p_ref = circuit_1.transpile().pattern
+        cf = p_ref.extract_gflow()
+        assert cf is not None
+        p_test = cf.to_corrections().to_pattern()
+
+        s_ref = p_ref.simulate_pattern()
+        s_test = p_test.simulate_pattern()
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    def test_extract_causal_flow_1(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        p_ref = Pattern(
+            input_nodes=[0, 1],
+            cmds=[
+                N(2),
+                N(3),
+                N(4),
+                N(5),
+                N(6),
+                N(7),
+                E((0, 2)),
+                E((2, 3)),
+                E((2, 4)),
+                E((1, 3)),
+                E((3, 5)),
+                E((4, 5)),
+                E((4, 6)),
+                E((5, 7)),
+                M(0, angle=0.1),
+                Z(3, {0}),
+                Z(4, {0}),
+                X(2, {0}),
+                M(1, angle=0.1),
+                Z(2, {1}),
+                Z(5, {1}),
+                X(3, {1}),
+                M(2, angle=0.1),
+                Z(5, {2}),
+                Z(6, {2}),
+                X(4, {2}),
+                M(3, angle=0.1),
+                Z(4, {3}),
+                Z(7, {3}),
+                X(5, {3}),
+                M(4, angle=0.1),
+                X(6, {4}),
+                M(5, angle=0.4),
+                X(7, {5}),
+            ],
+            output_nodes=[6, 7],
+        )
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        cf = p_ref.extract_causal_flow()
+        assert cf is not None
+        p_test = cf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+        gf = p_ref.extract_gflow()
+        assert gf is not None
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
 
 def cp(circuit: Circuit, theta: float, control: int, target: int) -> None:
     """Controlled rotation gate, decomposed."""  # noqa: D401

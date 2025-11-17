@@ -1070,21 +1070,60 @@ class Pattern:
         """
         yield from (cmd for cmd in self if cmd.kind == CommandKind.M)
 
+    def extract_partial_order_layers(self) -> tuple[frozenset[int], ...]:
+        dependency = self._get_dependency()
+        measured = self.results.keys()
+        self.update_dependency(measured, dependency)
+
+        oset = frozenset(self.__output_nodes)
+
+        measured_nodes = set(self.__input_nodes) - oset
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N and cmd.node not in oset:
+                measured_nodes |= {cmd.node}
+
+        layers = [oset] if oset else []
+
+        indegree_map: dict[int, int] = {}
+        for nodes in dependency.values():
+            for node in nodes:
+                indegree_map[node] = indegree_map.get(node, 0) + 1
+
+        zero_indegree = (measured_nodes | oset) - indegree_map.keys()
+
+        generations: list[frozenset[int]] = []
+
+        while zero_indegree:
+            this_generation = zero_indegree
+            zero_indegree = set()
+            for node in this_generation:
+                for child in dependency[node]:
+                    indegree_map[child] -= 1
+                    if indegree_map[child] == 0:
+                        zero_indegree.add(child)
+                        del indegree_map[child]
+            if generation := frozenset(this_generation - oset):
+                generations.append(generation)
+
+        if indegree_map:
+            raise ValueError("Pattern's not runnable since the induced directed graph contains closed loops.")
+
+        return *layers, *generations
+
     def extract_causal_flow(self) -> flow.CausalFlow[Measurement] | None:
-        graph: nx.Graph[int] = nx.Graph()
-        graph.add_nodes_from(self.input_nodes)
+        nodes = set(self.input_nodes)
+        edges: set[tuple[int, int]] = set()
         measurements: dict[int, Measurement] = {}
         correction_function: dict[int, set[int]] = {}
 
         for cmd in self.__seq:
             if cmd.kind == CommandKind.N:
-                graph.add_node(cmd.node)
+                nodes.add(cmd.node)
             elif cmd.kind == CommandKind.E:
                 u, v = cmd.nodes
-                if graph.has_edge(u, v):
-                    graph.remove_edge(u, v)
-                else:
-                    graph.add_edge(u, v)
+                if u > v:
+                    u, v = v, u
+                edges.symmetric_difference_update({(u, v)})
             elif cmd.kind == CommandKind.M:
                 node = cmd.node
                 measurements[node] = Measurement(cmd.angle, cmd.plane)
@@ -1097,24 +1136,31 @@ class Pattern:
                         return None  # Correcting sets in causal flows can have one element only.
                     correction_function[measured_node] = {corrected_node}
 
+        graph = nx.Graph(edges)
+        graph.add_nodes_from(nodes)
         og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
-        return flow.CausalFlow.from_correction_function(og, correction_function)
+
+        partial_order_layers = self.extract_partial_order_layers()
+        cf = flow.CausalFlow(og, correction_function, partial_order_layers)
+
+        if not cf.is_well_formed():
+            return None
+        return cf
 
     def extract_gflow(self) -> flow.GFlow[Measurement] | None:
-        graph: nx.Graph[int] = nx.Graph()
-        graph.add_nodes_from(self.input_nodes)
+        nodes = set(self.input_nodes)
+        edges: set[tuple[int, int]] = set()
         measurements: dict[int, Measurement] = {}
         correction_function: dict[int, set[int]] = defaultdict(set)
 
         for cmd in self.__seq:
             if cmd.kind == CommandKind.N:
-                graph.add_node(cmd.node)
+                nodes.add(cmd.node)
             elif cmd.kind == CommandKind.E:
                 u, v = cmd.nodes
-                if graph.has_edge(u, v):
-                    graph.remove_edge(u, v)
-                else:
-                    graph.add_edge(u, v)
+                if u > v:
+                    u, v = v, u
+                edges.symmetric_difference_update({(u, v)})
             elif cmd.kind == CommandKind.M:
                 node = cmd.node
                 measurements[node] = Measurement(cmd.angle, cmd.plane)
@@ -1125,8 +1171,16 @@ class Pattern:
                 for measured_node in cmd.domain:
                     correction_function[measured_node].add(corrected_node)
 
+        graph = nx.Graph(edges)
+        graph.add_nodes_from(nodes)
         og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
-        return flow.GFlow.from_correction_function(og, correction_function)
+
+        partial_order_layers = self.extract_partial_order_layers()
+        gf = flow.GFlow(og, correction_function, partial_order_layers)
+
+        if not gf.is_well_formed():
+            return None
+        return gf
 
     def extract_opengraph(self) -> OpenGraph[Measurement]:
         """Extract the underlying resource-state open graph from the pattern.
