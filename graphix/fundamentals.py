@@ -5,8 +5,8 @@ from __future__ import annotations
 import enum
 import sys
 import typing
-from abc import ABC, ABCMeta, abstractmethod
-from enum import Enum, EnumMeta
+from abc import ABC, abstractmethod
+from enum import Enum
 from typing import TYPE_CHECKING, SupportsComplex, SupportsFloat, SupportsIndex, overload
 
 import typing_extensions
@@ -14,6 +14,7 @@ import typing_extensions
 # override introduced in Python 3.12
 from typing_extensions import override
 
+from graphix._custom_meta import ABCEnumMeta
 from graphix.ops import Ops
 from graphix.parameter import cos_sin
 from graphix.repr_mixins import EnumReprMixin
@@ -218,10 +219,6 @@ class IXYZ(Enum):
         typing_extensions.assert_never(self)
 
 
-class CustomMeta(ABCMeta, EnumMeta):
-    """Custom metaclass to allow multiple inheritance from `Enum` and `ABC`."""
-
-
 class AbstractMeasurement(ABC):
     """Abstract base class for measurement objects.
 
@@ -261,7 +258,7 @@ class AbstractPlanarMeasurement(AbstractMeasurement):
         """
 
 
-class Axis(AbstractMeasurement, EnumReprMixin, Enum, metaclass=CustomMeta):
+class Axis(AbstractMeasurement, EnumReprMixin, Enum, metaclass=ABCEnumMeta):
     """Axis: *X*, *Y* or *Z*."""
 
     X = enum.auto()
@@ -284,7 +281,7 @@ class Axis(AbstractMeasurement, EnumReprMixin, Enum, metaclass=CustomMeta):
         return self
 
 
-class Plane(AbstractPlanarMeasurement, EnumReprMixin, Enum, metaclass=CustomMeta):
+class Plane(AbstractPlanarMeasurement, EnumReprMixin, Enum, metaclass=ABCEnumMeta):
     # TODO: Refactor using match
     """Plane: *XY*, *YZ* or *XZ*."""
 
