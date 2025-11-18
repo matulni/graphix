@@ -102,7 +102,7 @@ def find_flow(
     iset: set[int],
     oset: set[int],
     meas_planes: dict[int, Plane] | None = None,
-) -> tuple[dict[int, set[int]], dict[int, int]]:
+) -> tuple[dict[int, set[int]], dict[int, int]] | tuple[None, None]:
     """Causal flow finding algorithm.
 
     For open graph g with input, output, and measurement planes, this returns causal flow.
@@ -282,7 +282,7 @@ def find_pauliflow(
     return pf[0], pf[1]
 
 
-def flow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, int]]:
+def flow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, int]] | tuple[None, None]:
     """Check if the pattern has a valid flow. If so, return the flow and layers.
 
     Parameters
@@ -292,14 +292,16 @@ def flow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, 
 
     Returns
     -------
-    f: dict
+    None, None:
+        The tuple ``(None, None)`` is returned if the pattern does not have a valid causal flow.
+    f: dict[int, set[int]]
         flow function. g[i] is the set of qubits to be corrected for the measurement of qubit i.
-    l_k: dict
+    l_k: dict[int, int]
         layers obtained by flow algorithm. l_k[d] is a node set of depth d.
     """
     if not pattern.is_standard(strict=True):
         raise ValueError("The pattern should be standardized first.")
-    meas_planes = pattern.extract_planes()
+    meas_planes = pattern.get_meas_plane()
     for plane in meas_planes.values():
         if plane != Plane.XY:
             return None, None
@@ -332,7 +334,7 @@ def flow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, 
     return None, None
 
 
-def gflow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, int]]:
+def gflow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int, int]] | tuple[None, None]:
     """Check if the pattern has a valid gflow. If so, return the gflow and layers.
 
     Parameters
@@ -342,9 +344,11 @@ def gflow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int,
 
     Returns
     -------
-    g: dict
+    None, None:
+        The tuple ``(None, None)`` is returned if the pattern does not have a valid gflow.
+    g: dict[int, set[int]]
         gflow function. g[i] is the set of qubits to be corrected for the measurement of qubit i.
-    l_k: dict
+    l_k: dict[int, int]
         layers obtained by gflow algorithm. l_k[d] is a node set of depth d.
     """
     if not pattern.is_standard(strict=True):
@@ -352,7 +356,7 @@ def gflow_from_pattern(pattern: Pattern) -> tuple[dict[int, set[int]], dict[int,
     graph = pattern.extract_graph()
     input_nodes = set(pattern.input_nodes) if pattern.input_nodes else set()
     output_nodes = set(pattern.output_nodes)
-    meas_planes = pattern.extract_planes()
+    meas_planes = pattern.get_meas_plane()
 
     layers = pattern.get_layers()
     l_k = {}
@@ -404,9 +408,11 @@ def pauliflow_from_pattern(
 
     Returns
     -------
-    p: dict
+    None, None:
+        The tuple ``(None, None)`` is returned if the pattern does not have a valid Pauli flow.
+    p: dict[int, set[int]]
         Pauli flow function. p[i] is the set of qubits to be corrected for the measurement of qubit i.
-    l_k: dict
+    l_k: dict[int, int]
         layers obtained by Pauli flow algorithm. l_k[d] is a node set of depth d.
     """
     if not pattern.is_standard(strict=True):
@@ -414,8 +420,8 @@ def pauliflow_from_pattern(
     graph = pattern.extract_graph()
     input_nodes = set(pattern.input_nodes) if pattern.input_nodes else set()
     output_nodes = set(pattern.output_nodes) if pattern.output_nodes else set()
-    meas_planes = pattern.extract_planes()
-    meas_angles = pattern.extract_angles()
+    meas_planes = pattern.get_meas_plane()
+    meas_angles = pattern.get_angles()
 
     return find_pauliflow(graph, input_nodes, output_nodes, meas_planes, meas_angles)
 

@@ -997,11 +997,11 @@ class Pattern:
             measurement order
         """
         graph = self.extract_graph()
-        vin = set(self.input_nodes) if self.input_nodes is not None else set()
+        vin = set(self.input_nodes)
         vout = set(self.output_nodes)
-        meas_planes = self.extract_planes()
+        meas_planes = self.get_meas_plane()
         f, l_k = find_flow(graph, vin, vout, meas_planes=meas_planes)
-        if f is None:
+        if f is None or l_k is None:
             return None
         depth, layer = get_layers(l_k)
         meas_order: list[int] = []
@@ -1023,9 +1023,9 @@ class Pattern:
         isolated = list(nx.isolates(graph))
         if isolated:
             raise ValueError("The input graph must be connected")
-        vin = set(self.input_nodes) if self.input_nodes is not None else set()
+        vin = set(self.input_nodes)
         vout = set(self.output_nodes)
-        meas_planes = self.extract_planes()
+        meas_planes = self.get_meas_plane()
         flow, l_k = find_gflow(graph, vin, vout, meas_planes=meas_planes)
         if flow is None or l_k is None:  # We check both to avoid typing issues with `get_layers`.
             raise ValueError("No gflow found")
@@ -1233,54 +1233,33 @@ class Pattern:
             raise ValueError("Pattern does not have gflow.")
         return gf
 
-    def extract_opengraph(self) -> OpenGraph[Measurement]:
-        """Extract the underlying resource-state open graph from the pattern.
+    def get_meas_plane(self) -> dict[int, Plane]:
+        """Get measurement plane from the pattern.
 
         Returns
         -------
-        OpenGraph[Measurement]
-
-        Notes
-        -----
-        This operation loses all the information on the Clifford commands.
+        meas_plane: dict of graphix.pauli.Plane
+            list of planes representing measurement plane for each node.
         """
-        graph: nx.Graph[int] = nx.Graph()
-        measurements: dict[int, Measurement] = {}
-        graph.add_nodes_from(self.input_nodes)
+        meas_plane = {}
         for cmd in self.__seq:
-            if cmd.kind == CommandKind.N:
-                graph.add_node(cmd.node)
-            elif cmd.kind == CommandKind.E:
-                u, v = cmd.nodes
-                if graph.has_edge(u, v):
-                    graph.remove_edge(u, v)
-                else:
-                    graph.add_edge(u, v)
-            elif cmd.kind == CommandKind.M:
-                measurements[cmd.node] = Measurement(cmd.angle, cmd.plane)
-        return OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
+            if cmd.kind == CommandKind.M:
+                meas_plane[cmd.node] = cmd.plane
+        return meas_plane
 
-    def extract_planes(self) -> dict[int, Plane]:
-        """Return the measurement planes of the pattern.
+    def get_angles(self) -> dict[int, ExpressionOrFloat]:
+        """Get measurement angles of the pattern.
 
         Returns
         -------
-        dict[int, Plane]
-            measurement planes for each node.
+        angles : dict
+            measurement angles of the each node.
         """
-        og = self.extract_opengraph()
-        return {node: m.plane for node, m in og.measurements.items()}
-
-    def extract_angles(self) -> dict[int, ExpressionOrFloat]:
-        """Return the measurement angles of the pattern.
-
-        Returns
-        -------
-        dict[int, ExpressionOrFloat]
-            measurement angles of each node.
-        """
-        og = self.extract_opengraph()
-        return {node: m.angle for node, m in og.measurements.items()}
+        angles = {}
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.M:
+                angles[cmd.node] = cmd.angle
+        return angles
 
     def compute_max_degree(self) -> int:
         """Get max degree of a pattern.
@@ -1300,28 +1279,70 @@ class Pattern:
 
         Returns
         -------
-        nx.Graph[int]
+        graph_state: nx.Graph[int]
         """
-        return self.extract_opengraph().graph
+        graph: nx.Graph[int] = nx.Graph()
+        graph.add_nodes_from(self.input_nodes)
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N:
+                graph.add_node(cmd.node)
+            elif cmd.kind == CommandKind.E:
+                u, v = cmd.nodes
+                if graph.has_edge(u, v):
+                    graph.remove_edge(u, v)
+                else:
+                    graph.add_edge(u, v)
+        return graph
 
     def extract_nodes(self) -> set[int]:
-        """Return the nodes of the pattern.
-
-        Returns
-        -------
-        set[int]
-        """
-        return set(self.extract_graph().nodes)
+        """Return the set of nodes of the pattern."""
+        nodes = set(self.input_nodes)
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N:
+                nodes.add(cmd.node)
+        return nodes
 
     def extract_isolated_nodes(self) -> set[int]:
-        """Return the isolated nodes in the pattern.
+        """Get isolated nodes.
 
         Returns
         -------
-        set[int]
+        isolated_nodes : set[int]
+            set of the isolated nodes
         """
         graph = self.extract_graph()
         return {node for node, d in graph.degree if d == 0}
+
+    def extract_opengraph(self) -> OpenGraph[Measurement]:
+        """Extract the underlying resource-state open graph from the pattern.
+
+        Returns
+        -------
+        OpenGraph[Measurement]
+
+        Notes
+        -----
+        This operation loses all the information on the Clifford commands.
+        """
+        nodes = set(self.input_nodes)
+        edges: set[tuple[int, int]] = set()
+        measurements: dict[int, Measurement] = {}
+
+        for cmd in self.__seq:
+            if cmd.kind == CommandKind.N:
+                nodes.add(cmd.node)
+            elif cmd.kind == CommandKind.E:
+                u, v = cmd.nodes
+                if u > v:
+                    u, v = v, u
+                edges.symmetric_difference_update({(u, v)})
+            elif cmd.kind == CommandKind.M:
+                measurements[cmd.node] = Measurement(cmd.angle, cmd.plane)
+
+        graph = nx.Graph(edges)
+        graph.add_nodes_from(nodes)
+
+        return OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
 
     def get_vops(self, conj: bool = False, include_identity: bool = False) -> dict[int, Clifford]:
         """Get local-Clifford decorations from measurement or Clifford commands.
@@ -1565,10 +1586,9 @@ class Pattern:
         show_local_clifford: bool = False,
         show_measurement_planes: bool = False,
         show_loop: bool = True,
-        node_distance: tuple[int, int] = (1, 1),
+        node_distance: tuple[float, float] = (1, 1),
         figsize: tuple[int, int] | None = None,
-        save: bool = False,
-        filename: str | None = None,
+        filename: Path | None = None,
     ) -> None:
         """Visualize the underlying graph of the pattern with flow or gflow structure.
 
@@ -1588,16 +1608,15 @@ class Pattern:
             Distance multiplication factor between nodes for x and y directions.
         figsize : tuple
             Figure size of the plot.
-        save : bool
-            If True, the plot is saved as a png file.
-        filename : str
-            Filename of the saved plot.
+        filename : Path | None
+            If not None, filename of the png file to save the plot. If None, the plot is not saved.
+            Default in None.
         """
         graph = self.extract_graph()
-        vin = self.input_nodes if self.input_nodes is not None else []
+        vin = self.input_nodes
         vout = self.output_nodes
-        meas_planes = self.extract_planes()
-        meas_angles = self.extract_angles()
+        meas_planes = self.get_meas_plane()
+        meas_angles = self.get_angles()
         local_clifford = self.get_vops()
 
         vis = GraphVisualizer(graph, vin, vout, meas_planes, meas_angles, local_clifford)
@@ -1611,7 +1630,6 @@ class Pattern:
                 show_loop=show_loop,
                 node_distance=node_distance,
                 figsize=figsize,
-                save=save,
                 filename=filename,
             )
         else:
@@ -1622,7 +1640,6 @@ class Pattern:
                 show_loop=show_loop,
                 node_distance=node_distance,
                 figsize=figsize,
-                save=save,
                 filename=filename,
             )
 
