@@ -885,9 +885,7 @@ class TestPattern:
                 4: Measurement(0.4, Plane.XY),
             },
         )
-        cf = og.find_causal_flow()
-        assert cf is not None
-        p_ref = cf.to_corrections().to_pattern()
+        p_ref = og.extract_causal_flow().to_corrections().to_pattern()
         s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
 
         cf = p_ref.extract_causal_flow()
@@ -896,9 +894,7 @@ class TestPattern:
 
         assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
 
-        gf = og.find_gflow()
-        assert gf is not None
-        p_ref = gf.to_corrections().to_pattern()
+        p_ref = og.extract_gflow().to_corrections().to_pattern()
         s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
 
         gf = p_ref.extract_gflow()

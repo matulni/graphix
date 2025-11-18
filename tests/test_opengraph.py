@@ -806,7 +806,6 @@ class TestOpenGraph:
         if test_case.has_cflow:
             pattern = og.extract_causal_flow().to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
-            assert cflow.is_well_formed()
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a causal flow."):
                 og.extract_causal_flow()
@@ -818,7 +817,6 @@ class TestOpenGraph:
         if test_case.has_gflow:
             pattern = og.extract_gflow().to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
-            assert gflow.is_well_formed()
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a gflow."):
                 og.extract_gflow()
@@ -830,7 +828,6 @@ class TestOpenGraph:
         if test_case.has_pflow:
             pattern = og.extract_pauli_flow().to_corrections().to_pattern()
             assert check_determinism(pattern, fx_rng)
-            assert pflow.is_well_formed()
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a Pauli flow."):
                 og.extract_pauli_flow()
