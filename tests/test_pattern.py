@@ -14,7 +14,8 @@ from graphix.branch_selector import ConstBranchSelector, FixedBranchSelector
 from graphix.clifford import Clifford
 from graphix.command import C, Command, CommandKind, E, M, N, X, Z
 from graphix.fundamentals import Plane
-from graphix.measurements import Outcome, PauliMeasurement
+from graphix.measurements import Measurement, Outcome, PauliMeasurement
+from graphix.opengraph import OpenGraph
 from graphix.pattern import Pattern, shift_outcomes
 from graphix.random_objects import rand_circuit, rand_gate
 from graphix.sim.density_matrix import DensityMatrix
@@ -694,14 +695,13 @@ class TestPattern:
         circuit_1 = rand_circuit(nqubits, depth, rng, use_ccx=True)
         p_ref = circuit_1.transpile().pattern
         cf = p_ref.extract_gflow()
-        assert cf is not None
         p_test = cf.to_corrections().to_pattern()
 
         s_ref = p_ref.simulate_pattern()
         s_test = p_test.simulate_pattern()
         assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
 
-    def test_extract_causal_flow_1(self, fx_rng: Generator) -> None:
+    def test_extract_flow_1(self, fx_rng: Generator) -> None:
         alpha = 2 * np.pi * fx_rng.random()
 
         p_ref = Pattern(
@@ -747,16 +747,165 @@ class TestPattern:
         s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
 
         cf = p_ref.extract_causal_flow()
-        assert cf is not None
         p_test = cf.to_corrections().to_pattern()
         s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
 
         assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
 
         gf = p_ref.extract_gflow()
-        assert gf is not None
         p_test = gf.to_corrections().to_pattern()
         s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    # No measurements or corrections
+    def test_extract_flow_2(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        p_ref = Pattern(
+            input_nodes=[0, 1],
+            cmds=[E((0, 1))],
+        )
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        cf = p_ref.extract_causal_flow()
+        p_test = cf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+        gf = p_ref.extract_gflow()
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    # Disconnected nodes and unordered outputs
+    def test_extract_flow_3(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        p_ref = Pattern(input_nodes=[2], cmds=[N(0), N(1), E((0, 1)), M(0), X(1, {0})], output_nodes=[2, 1])
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        cf = p_ref.extract_causal_flow()
+        p_test = cf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+        gf = p_ref.extract_gflow()
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    # Pattern with XZ measurements.
+    def test_extract_flow_4(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        p_ref = Pattern(cmds=[N(0), N(1), E((0, 1)), M(0, Plane.XZ, 0.3), Z(1, {0}), X(1, {0})], output_nodes=[1])
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        with pytest.raises(ValueError, match=r"Pattern does not have causal flow. Node 0 is measured in Plane.XZ."):
+            p_ref.extract_causal_flow()
+
+        gf = p_ref.extract_gflow()
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    # Pattern with gflow but without causal flow and XY measurements.
+    def test_extract_flow_5(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        p_ref = Pattern(
+            input_nodes=[1, 2, 3],
+            cmds=[
+                N(4),
+                N(5),
+                N(6),
+                E((1, 4)),
+                E((1, 6)),
+                E((4, 2)),
+                E((6, 2)),
+                E((6, 3)),
+                E((2, 5)),
+                E((5, 3)),
+                M(1, angle=0.1),
+                X(5, {1}),
+                X(6, {1}),
+                M(2, angle=0.2),
+                X(4, {2}),
+                X(5, {2}),
+                X(6, {2}),
+                M(3, angle=0.3),
+                X(4, {3}),
+                X(6, {3}),
+            ],
+            output_nodes=[4, 5, 6],
+        )
+
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        with pytest.raises(
+            ValueError,
+            match=r"Pattern does not have causal flow. Node 1 is corrected by nodes 5 and 6 but correcting sets in causal flows can have one element only.",
+        ):
+            p_ref.extract_causal_flow()
+
+        gf = p_ref.extract_gflow()
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+    # Non-deterministic pattern.
+    def test_extract_flow_6(self) -> None:
+        p_ref = Pattern(input_nodes=[0], cmds=[N(1), E((0, 1)), M(0, Plane.XY, 0.3)])
+
+        with pytest.raises(ValueError, match=r"Pattern does not have causal flow."):
+            p_ref.extract_causal_flow()
+
+        with pytest.raises(ValueError, match=r"Pattern does not have gflow."):
+            p_ref.extract_gflow()
+
+    # From open graph
+    def test_extract_flow_7(self, fx_rng: Generator) -> None:
+        alpha = 2 * np.pi * fx_rng.random()
+
+        og = OpenGraph(
+            graph=nx.Graph([(1, 3), (2, 4), (3, 4), (3, 5), (4, 6)]),
+            input_nodes=[1, 2],
+            output_nodes=[6, 5],
+            measurements={
+                1: Measurement(0.1, Plane.XY),
+                2: Measurement(0.2, Plane.XY),
+                3: Measurement(0.3, Plane.XY),
+                4: Measurement(0.4, Plane.XY),
+            },
+        )
+        cf = og.find_causal_flow()
+        assert cf is not None
+        p_ref = cf.to_corrections().to_pattern()
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        cf = p_ref.extract_causal_flow()
+        p_test = cf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
+
+        gf = og.find_gflow()
+        assert gf is not None
+        p_ref = gf.to_corrections().to_pattern()
+        s_ref = p_ref.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        gf = p_ref.extract_gflow()
+        p_test = gf.to_corrections().to_pattern()
+        s_test = p_test.simulate_pattern(input_state=PlanarState(Plane.XZ, alpha))
+
+        assert np.abs(np.dot(s_ref.flatten().conjugate(), s_test.flatten())) == pytest.approx(1)
 
 
 def cp(circuit: Circuit, theta: float, control: int, target: int) -> None:

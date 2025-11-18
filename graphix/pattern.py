@@ -1070,6 +1070,7 @@ class Pattern:
         """
         yield from (cmd for cmd in self if cmd.kind == CommandKind.M)
 
+    # TODO: add runnability test
     def extract_partial_order_layers(self) -> tuple[frozenset[int], ...]:
         dependency = self._get_dependency()
         measured = self.results.keys()
@@ -1110,7 +1111,29 @@ class Pattern:
 
         return *layers, *generations
 
-    def extract_causal_flow(self) -> flow.CausalFlow[Measurement] | None:
+    def extract_causal_flow(self) -> flow.CausalFlow[Measurement]:
+        """Extract the causal flow structure from the current measurement pattern.
+
+        This method reconstructs the underlying open graph, validates measurement constraints, builds correction dependencies, and verifies that the resulting :class:`flow.CausalFlow` satisfies all well-formedness conditions.
+
+        Returns
+        -------
+        flow.CausalFlow[Measurement]
+            The causal flow associated with the current pattern.
+
+        Raises
+        ------
+        ValueError
+            If the pattern:
+            - contains measurements in forbidden planes (XZ or YZ),
+            - assigns more than one correcting node to the same measured node,
+            - is empty, or
+            - fails the well-formedness checks for a valid causal flow.
+
+        Notes
+        -----
+        A causal flow is a structural property of MBQC patterns ensuring that corrections can be assigned deterministically with *single-element* correcting sets and without requiring measurements in the XZ or YZ planes.
+        """
         nodes = set(self.input_nodes)
         edges: set[tuple[int, int]] = set()
         measurements: dict[int, Measurement] = {}
@@ -1128,12 +1151,14 @@ class Pattern:
                 node = cmd.node
                 measurements[node] = Measurement(cmd.angle, cmd.plane)
                 if cmd.plane in {Plane.XZ, Plane.YZ}:
-                    return None
+                    raise ValueError(f"Pattern does not have causal flow. Node {node} is measured in {cmd.plane}.")
             elif cmd.kind == CommandKind.X:
                 corrected_node = cmd.node
                 for measured_node in cmd.domain:
                     if measured_node in correction_function:
-                        return None  # Correcting sets in causal flows can have one element only.
+                        raise ValueError(
+                            f"Pattern does not have causal flow. Node {measured_node} is corrected by nodes {correction_function[measured_node].pop()} and {corrected_node} but correcting sets in causal flows can have one element only."
+                        )
                     correction_function[measured_node] = {corrected_node}
 
         graph = nx.Graph(edges)
@@ -1141,13 +1166,36 @@ class Pattern:
         og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
 
         partial_order_layers = self.extract_partial_order_layers()
+        if len(partial_order_layers) == 0:
+            raise ValueError("Pattern is empty.")
+
         cf = flow.CausalFlow(og, correction_function, partial_order_layers)
 
         if not cf.is_well_formed():
-            return None
+            raise ValueError("Pattern does not have causal flow.")
         return cf
 
-    def extract_gflow(self) -> flow.GFlow[Measurement] | None:
+    def extract_gflow(self) -> flow.GFlow[Measurement]:
+        """Extract the generalized flow (gflow) structure from the current measurement pattern.
+
+        The method reconstructs the underlying open graph, and determines the correction dependencies and the partial order required for a valid gflow. It then constructs and validates a :class:`flow.GFlow` object.
+
+        Returns
+        -------
+        flow.GFlow[Measurement]
+            The gflow associated with the current pattern.
+
+        Raises
+        ------
+        ValueError
+            If the pattern is empty or if the extracted structure does not satisfy
+            the well-formedness conditions required for a valid gflow.
+
+        Notes
+        -----
+        A gflow is a structural property of measurement-based quantum computation
+        (MBQC) patterns that ensures determinism and proper correction propagation.
+        """
         nodes = set(self.input_nodes)
         edges: set[tuple[int, int]] = set()
         measurements: dict[int, Measurement] = {}
@@ -1176,10 +1224,13 @@ class Pattern:
         og = opengraph.OpenGraph(graph, self.input_nodes, self.output_nodes, measurements)
 
         partial_order_layers = self.extract_partial_order_layers()
+        if len(partial_order_layers) == 0:
+            raise ValueError("Pattern is empty.")
+
         gf = flow.GFlow(og, correction_function, partial_order_layers)
 
         if not gf.is_well_formed():
-            return None
+            raise ValueError("Pattern does not have gflow.")
         return gf
 
     def extract_opengraph(self) -> OpenGraph[Measurement]:
