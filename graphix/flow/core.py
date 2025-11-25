@@ -362,7 +362,7 @@ class PauliFlow(Generic[_M_co]):
 
         aog = AlgebraicOpenGraph(og)
         correction_matrix = CorrectionMatrix.from_correction_function(aog, correction_function)
-        return cls.from_correction_matrix(correction_matrix)
+        return cls.try_from_correction_matrix(correction_matrix)
 
     def to_corrections(self) -> XZCorrections[_M_co]:
         """Compute the X and Z corrections induced by the Pauli flow encoded in `self`.
@@ -414,7 +414,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
     @override
     @classmethod
-    def from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
+    def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
         """Initialize a `GFlow` object from a matrix encoding a correction function.
 
         Parameters
@@ -435,7 +435,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
         ----------
         [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
         """
-        return super().from_correction_matrix(correction_matrix)
+        return super().try_from_correction_matrix(correction_matrix)
 
     @override
     @classmethod
@@ -476,7 +476,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
         aog = PlanarAlgebraicOpenGraph(og)
         correction_matrix = CorrectionMatrix.from_correction_function(aog, correction_function)
-        return cls.from_correction_matrix(correction_matrix)
+        return cls.try_from_correction_matrix(correction_matrix)
 
     @override
     def to_corrections(self) -> XZCorrections[_PM_co]:
@@ -522,6 +522,11 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
     [1] Browne et al., 2007 New J. Phys. 9 250 (arXiv:quant-ph/0702212).
 
     """
+
+    @override
+    @classmethod
+    def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> None:
+        raise NotImplementedError("Initialization of a causal flow from a correction matrix is not supported.")
 
     @override
     @classmethod
@@ -574,11 +579,6 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
         partial_order_layers_tuple = frozenset(og.output_nodes), *partial_order_layers[1:]
 
         return cls(og, correction_function, partial_order_layers_tuple)
-
-    @override
-    @classmethod
-    def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> None:
-        raise NotImplementedError("Initialization of a causal flow from a correction matrix is not supported.")
 
     @override
     def to_corrections(self) -> XZCorrections[_PM_co]:
