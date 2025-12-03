@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import enum
+import itertools
 import warnings
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
@@ -18,11 +19,12 @@ from typing import TYPE_CHECKING, SupportsFloat, TypeVar
 import networkx as nx
 from typing_extensions import assert_never
 
+import graphix.flow.core as flow
 from graphix import command, optimization, parameter
 from graphix.clifford import Clifford
 from graphix.command import Command, CommandKind
+from graphix.flow._partial_order import compute_topological_generations
 from graphix.fundamentals import Axis, Plane, Sign
-from graphix.gflow import find_flow, find_gflow, get_layers
 from graphix.graphsim import GraphState
 from graphix.measurements import Measurement, Outcome, PauliMeasurement, toggle_outcome
 from graphix.opengraph import OpenGraph
@@ -885,6 +887,116 @@ class Pattern:
         for i in dependency:
             dependency[i] -= measured
 
+    def extract_partial_order_layers(self) -> tuple[frozenset[int], ...]:
+        """Extract the measurement order of the pattern in the form of layers.
+
+        This method builds a directed acyclical diagram (DAG) from the pattern and then performs a topological sort.
+
+        Returns
+        -------
+        tuple[frozenset[int], ...]
+            Measurement partial order between the pattern's nodes in a layer form.
+
+        Raises
+        ------
+        RunnabilityError
+            If the pattern is not runnable.
+
+        Notes
+        -----
+        The returned object follows the same conventions as the ``partial_order_layers`` attribute of :class:`PauliFlow` and :class:`XZCorrections` objects:
+            - Nodes in the same layer can be measured simultaneously.
+            - Nodes in layer ``i`` must be measured before nodes in layer ``i + 1``.
+            - All output nodes (if any) are in the first layer.
+            - There cannot be any empty layers.
+        """
+        self.check_runnability()
+
+        oset = frozenset(self.output_nodes)  # First layer by convention
+        pre_measured_nodes = set(self.results.keys())  # Not included in the partial order layers
+        excluded_nodes = oset | pre_measured_nodes
+
+        zero_indegree = set(self.input_nodes) - excluded_nodes
+        dag: dict[int, set[int]] = {node: set() for node in zero_indegree}
+        indegree_map: dict[int, int] = {}
+
+        for cmd in self:
+            domain = set()
+            if cmd.kind == CommandKind.N:
+                if cmd.node not in oset:  # pre-measured nodes only appear in domains.
+                    dag[cmd.node] = set()
+                    zero_indegree.add(cmd.node)
+            elif cmd.kind == CommandKind.M:
+                node, domain = cmd.node, cmd.s_domain | cmd.t_domain
+            elif cmd.kind == CommandKind.X or cmd.kind == CommandKind.Z:  # noqa: PLR1714
+                node, domain = cmd.node, cmd.domain
+
+            for dep_node in domain:
+                if not {node, dep_node} & excluded_nodes and node not in dag[dep_node]:
+                    dag[dep_node].add(node)
+                    indegree_map[node] = indegree_map.get(node, 0) + 1
+
+        zero_indegree -= indegree_map.keys()
+
+        generations = compute_topological_generations(dag, indegree_map, zero_indegree)
+        assert generations is not None  # DAG can't contain loops because pattern is runnable.
+
+        if oset:
+            return oset, *generations[::-1]
+        return generations[::-1]
+
+    def extract_causal_flow(self) -> flow.CausalFlow[Measurement]:
+        """Extract the causal flow structure from the current measurement pattern.
+
+        This method reconstructs the underlying open graph, validates measurement constraints, builds correction dependencies, and verifies that the resulting :class:`flow.CausalFlow` satisfies all well-formedness conditions.
+
+        Returns
+        -------
+        flow.CausalFlow[Measurement]
+            The causal flow associated with the current pattern.
+
+        Raises
+        ------
+        ValueError
+            If the pattern:
+            - contains measurements in forbidden planes (XZ or YZ),
+            - assigns more than one correcting node to the same measured node,
+            - is empty, or
+            - fails the well-formedness checks for a valid causal flow.
+        RunnabilityError
+            If the pattern is not runnable.
+
+        Notes
+        -----
+        A causal flow is a structural property of MBQC patterns ensuring that corrections can be assigned deterministically with *single-element* correcting sets and without requiring measurements in the XZ or YZ planes.
+        """
+        return optimization.StandardizedPattern.from_pattern(self).extract_causal_flow()
+
+    def extract_gflow(self) -> flow.GFlow[Measurement]:
+        """Extract the generalized flow (gflow) structure from the current measurement pattern.
+
+        The method reconstructs the underlying open graph, and determines the correction dependencies and the partial order required for a valid gflow. It then constructs and validates a :class:`flow.GFlow` object.
+
+        Returns
+        -------
+        flow.GFlow[Measurement]
+            The gflow associated with the current pattern.
+
+        Raises
+        ------
+        ValueError
+            If the pattern is empty or if the extracted structure does not satisfy
+            the well-formedness conditions required for a valid gflow.
+        RunnabilityError
+            If the pattern is not runnable.
+
+        Notes
+        -----
+        A gflow is a structural property of measurement-based quantum computation
+        (MBQC) patterns that ensures determinism and proper correction propagation.
+        """
+        return optimization.StandardizedPattern.from_pattern(self).extract_gflow()
+
     def get_layers(self) -> tuple[int, dict[int, set[int]]]:
         """Construct layers(l_k) from dependency information.
 
@@ -982,54 +1094,6 @@ class Pattern:
             self.update_dependency({next_node}, dependency)
             not_measured -= {next_node}
             edges -= removable_edges
-        return meas_order
-
-    def get_measurement_order_from_flow(self) -> list[int] | None:
-        """Return a measurement order generated from flow. If a graph has flow, the minimum 'max_space' of a pattern is guaranteed to width+1.
-
-        Returns
-        -------
-        meas_order: list of int
-            measurement order
-        """
-        graph = self.extract_graph()
-        vin = set(self.input_nodes)
-        vout = set(self.output_nodes)
-        meas_planes = self.get_meas_plane()
-        f, l_k = find_flow(graph, vin, vout, meas_planes=meas_planes)
-        if f is None or l_k is None:
-            return None
-        depth, layer = get_layers(l_k)
-        meas_order: list[int] = []
-        for i in range(depth):
-            k = depth - i
-            nodes = layer[k]
-            meas_order += nodes  # NOTE this is list concatenation
-        return meas_order
-
-    def get_measurement_order_from_gflow(self) -> list[int]:
-        """Return a list containing the node indices, in the order of measurements which can be performed with minimum depth.
-
-        Returns
-        -------
-        meas_order : list of int
-            measurement order
-        """
-        graph = self.extract_graph()
-        isolated = list(nx.isolates(graph))
-        if isolated:
-            raise ValueError("The input graph must be connected")
-        vin = set(self.input_nodes)
-        vout = set(self.output_nodes)
-        meas_planes = self.get_meas_plane()
-        flow, l_k = find_gflow(graph, vin, vout, meas_planes=meas_planes)
-        if flow is None or l_k is None:  # We check both to avoid typing issues with `get_layers`.
-            raise ValueError("No gflow found")
-        k, layers = get_layers(l_k)
-        meas_order: list[int] = []
-        while k > 0:
-            meas_order.extend(layers[k])
-            k -= 1
         return meas_order
 
     def sort_measurement_commands(self, meas_order: list[int]) -> list[command.M]:
@@ -1278,7 +1342,8 @@ class Pattern:
             self.standardize()
         meas_order = None
         if not self._pauli_preprocessed:
-            meas_order = self.get_measurement_order_from_flow()
+            cf = self.extract_opengraph().find_causal_flow()
+            meas_order = list(itertools.chain(*reversed(cf.partial_order_layers[1:]))) if cf is not None else None
         if meas_order is None:
             meas_order = self._measurement_order_space()
         self._reorder_pattern(self.sort_measurement_commands(meas_order))
