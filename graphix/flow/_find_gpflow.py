@@ -262,6 +262,41 @@ class CorrectionMatrix(Generic[_M_co]):
             correction_function[node] = frozenset(correction_set)
         return correction_function
 
+    @staticmethod
+    def from_correction_function(
+        aog: AlgebraicOpenGraph[_M_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> CorrectionMatrix[_M_co]:
+        r"""Initialise a `CorrectionMatrix` object from a correction function.
+
+        Parameters
+        ----------
+        aog : AlgebraicOpenGraph[_M_co]
+            Algebraic representation of the open graph relative to which the correction function is defined.
+        correction_function : dict[int, AbstractSet[int]]
+            Flow correction function. ``correction_function[i]`` is the set of qubits correcting the measurement of qubit ``i``.
+
+        Returns
+        -------
+        CorrectionMatrix[_M_co]
+            Algebraic representation of the correction function.
+
+        Notes
+        -----
+        - This function does not verify the correctness of the input correction function.
+        - This function is not part of the flow-finding algorithm but is an auxiliary method to initialize a flow from a correction function.
+        """
+        row_tags = aog.non_inputs
+        col_tags = aog.non_outputs
+
+        c_matrix = MatGF2(np.zeros((len(row_tags), len(col_tags)), dtype=np.uint8))
+
+        for node, correction_set in correction_function.items():
+            col = col_tags.index(node)
+            for corrector in correction_set:
+                row = row_tags.index(corrector)
+                c_matrix[row, col] = 1
+        return CorrectionMatrix(aog, c_matrix)
+
 
 def _compute_p_matrix(aog: AlgebraicOpenGraph[_M_co], nb_matrix: MatGF2) -> MatGF2 | None:
     r"""Perform the steps 8 - 12 of the general case (larger number of outputs than inputs) algorithm.

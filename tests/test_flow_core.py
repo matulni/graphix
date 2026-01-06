@@ -619,6 +619,30 @@ class TestXZCorrections:
         assert exc_info.value.reason == XZCorrectionsGenericErrorReason.IncorrectValues
 
 
+class TestFlow:
+    """Bundle for unit tests of :class:`PauliFlow` and children."""
+
+    # @pytest.mark.parametrize("test_case", [generate_causal_flow_0(), generate_causal_flow_1()])
+    # def test_from_correction_function_cflow(self, test_case: CausalFlow[_PM_co]) -> None:
+    #     f = CausalFlow.from_correction_function(test_case.og, test_case.correction_function)
+    #     assert f is not None
+
+    @pytest.mark.parametrize("test_case", [generate_gflow_0(), generate_gflow_1(), generate_gflow_2()])
+    def test_from_correction_function_gflow(self, test_case: GFlow[AbstractPlanarMeasurement]) -> None:
+        f = GFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f.og.isclose(test_case.og)
+        assert f.correction_function == test_case.correction_function
+        # We recompute the partial order of the test_case with the extraction algorithm to ensure it has minimal depth.
+        assert f.partial_order_layers == test_case.og.extract_gflow().partial_order_layers
+
+    @pytest.mark.parametrize("test_case", [generate_pauli_flow_0(), generate_pauli_flow_1()])
+    def test_from_correction_function_pauli_flow(self, test_case: PauliFlow[AbstractMeasurement]) -> None:
+        f = PauliFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f.og.isclose(test_case.og)
+        assert f.correction_function == test_case.correction_function
+        assert f.partial_order_layers == test_case.og.extract_pauli_flow().partial_order_layers
+
+
 class IncorrectFlowTestCase(NamedTuple):
     flow: PauliFlow[AbstractMeasurement]
     exception: FlowError

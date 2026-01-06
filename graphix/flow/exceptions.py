@@ -86,7 +86,10 @@ class FlowGenericErrorReason(Enum):
     """The image of the correction function is not a subset of non-input nodes (prepared qubits) of the open graph."""
 
     XYPlane = enum.auto()
-    "A causal flow is defined on an open graphs with non-XY measurements."
+    """A causal flow is defined on an open graphs with non-XY measurements."""
+
+    IncompatibleCorrectionFunction = enum.auto()
+    """The input correction function is not compatible with a partial order on the open graph."""
 
 
 class XZCorrectionsOrderErrorReason(Enum):
@@ -237,6 +240,9 @@ class FlowGenericError(FlowError):
 
         if self.reason == FlowGenericErrorReason.XYPlane:
             return "Causal flow is only defined on open graphs with XY measurements."
+
+        if self.reason == FlowGenericErrorReason.IncompatibleCorrectionFunction:
+            return "The input correction function is not compatible with a partial order on the open graph."
 
         assert_never(self.reason)
 

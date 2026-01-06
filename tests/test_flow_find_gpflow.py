@@ -20,6 +20,7 @@ import pytest
 from graphix._linalg import MatGF2
 from graphix.flow._find_gpflow import (
     AlgebraicOpenGraph,
+    CorrectionMatrix,
     PlanarAlgebraicOpenGraph,
     _try_ordering_matrix_to_topological_generations,
     compute_correction_matrix,
@@ -270,6 +271,10 @@ class TestAlgebraicFlow:
             assert np.all(
                 (test_case.flow_demand_mat @ corr_matrix.c_matrix) % 2 == ident
             )  # Test with numpy matrix product.
+            corr_matrix_transformed = CorrectionMatrix.from_correction_function(
+                aog, corr_matrix.to_correction_function()
+            )
+            assert np.all(corr_matrix.c_matrix == corr_matrix_transformed.c_matrix)
         else:
             assert corr_matrix is None
 

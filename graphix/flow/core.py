@@ -16,7 +16,9 @@ from typing_extensions import assert_never, override
 import graphix.pattern
 from graphix.command import E, M, N, X, Z
 from graphix.flow._find_gpflow import (
+    AlgebraicOpenGraph,
     CorrectionMatrix,
+    PlanarAlgebraicOpenGraph,
     _M_co,
     _PM_co,
     compute_partial_order_layers,
@@ -388,6 +390,66 @@ class PauliFlow(Generic[_M_co]):
     partial_order_layers: Sequence[AbstractSet[int]]
 
     @classmethod
+    def _aog(cls, og: OpenGraph[_M_co]) -> AlgebraicOpenGraph[_M_co]:
+        r"""Convert an `OpenGraph` to an `AlgebraicOpenGraph`.
+
+        This method interprets the measurements with Pauli angles (integer multiples of :math:`\frac{\pi}{2}`) as `Axis` instances following the convention in :func:`OpenGraph.find_pauli_flow`.
+
+        Parameters
+        ----------
+        og : OpenGraph[_M_co]
+
+        Returns
+        -------
+        AlgebraicOpenGraph[_M_co]
+        """
+        return AlgebraicOpenGraph(og)
+
+    @classmethod
+    def from_correction_function(
+        cls, og: OpenGraph[_M_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> Self:
+        r"""Initialize a flow object from a correction function.
+
+        Parameters
+        ----------
+        og : OpenGraph[_M_co]
+        correction_function : Mapping[int, AbstractSet[int]]
+
+        Returns
+        -------
+        Self
+            A Pauli flow if the correction function is correct and compatible with a partial order on the open graph nodes.
+
+        Raises
+        ------
+        FlowError
+            If input correction function is incorrect or is not compatible with a partial order on the open graph.
+
+        Notes
+        -----
+        This method verifies that:
+            - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
+            - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
+        Then, it attempts to calculate a partial measurement order on the input open graph compatible with the input correction function and validates the correctness of the resulting Pauli flow. See Lemma 3.12, and Theorem 3.1 in Ref. [1].
+
+        References
+        ----------
+        [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
+        """
+        if not _check_correction_function_domain(og, correction_function):
+            raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionDomain)
+        if not _check_correction_function_image(og, correction_function):
+            raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionImage)
+
+        correction_matrix = CorrectionMatrix.from_correction_function(cls._aog(og), correction_function)
+        pflow = cls.try_from_correction_matrix(correction_matrix)
+        if pflow is None:
+            raise FlowGenericError(FlowGenericErrorReason.IncompatibleCorrectionFunction)
+        pflow.check_well_formed()
+        return pflow
+
+    @classmethod
     def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_M_co]) -> Self | None:
         """Initialize a `PauliFlow` object from a matrix encoding a correction function.
 
@@ -621,6 +683,23 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
     @override
     @classmethod
+    def _aog(cls, og: OpenGraph[_PM_co]) -> PlanarAlgebraicOpenGraph[_PM_co]:
+        r"""Convert an `OpenGraph` to an `AlgebraicOpenGraph`.
+
+        This method interprets the measurements with Pauli angles (integer multiples of :math:`\frac{\pi}{2}`) as `Plane` instances following the convention in :func:`OpenGraph.find_gflow`.
+
+        Parameters
+        ----------
+        og : OpenGraph[_PM_co]
+
+        Returns
+        -------
+        PlanarOpenGraph[_PM_co]
+        """
+        return PlanarAlgebraicOpenGraph(og)
+
+    @override
+    @classmethod
     def try_from_correction_matrix(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
         """Initialize a `GFlow` object from a matrix encoding a correction function.
 
@@ -793,6 +872,63 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
     [1] Browne et al., 2007 New J. Phys. 9 250 (arXiv:quant-ph/0702212).
 
     """
+
+    # TODO: Fix
+    @override
+    @classmethod
+    def from_correction_function(
+        cls, og: OpenGraph[_PM_co], correction_function: Mapping[int, AbstractSet[int]]
+    ) -> Self:
+        """Initialize a `CausalFlow` object from a correction function.
+
+        Parameters
+        ----------
+        og : OpenGraph[_PM_co]
+        correction_function : Mapping[int, AbstractSet[int]]
+
+        Returns
+        -------
+        Self
+            A causal flow if the correction function is correct and compatible with a partial order on the open graph nodes.
+
+        Raises
+        ------
+        FlowError
+            If input correction function is incorrect or is not compatible with a partial order on the open graph.
+
+        Notes
+        -----
+        This method verifies that:
+            - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
+            - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph, and the correction sets have one element only.
+            - The measurement planes of the open graph are XY (not enforced by the static type-checker).
+        Then, it attempts to calculate a partial measurement order on the input open graph compatible with the input correction function and validates the correctness of the resulting causal flow.
+        """
+        if not _check_correction_function_domain(og, correction_function):
+            raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionDomain)
+
+        ic_set = og.graph.nodes - set(og.input_nodes)
+        relations: list[tuple[int, int]] = []
+        for node, c_set in correction_function.items():
+            if not (set(c_set).issubset(ic_set) and len(c_set) == 1):
+                raise FlowPropositionError(FlowPropositionErrorReason.C0, node=node, correction_set=c_set)
+            if og.measurements[node].to_plane() in {Plane.XZ, Plane.YZ}:
+                raise FlowError("Causal flow is only defined on open graphs with XY measurements.")
+            c_node, *_ = c_set
+            relations.append((node, c_node))
+
+        partial_order_layers = _dag_to_partial_order_layers(nx.DiGraph(relations))
+
+        if partial_order_layers is None:
+            raise FlowError("The input correction function is not compatible with a partial order on the open graph.")
+
+        # The first element in the output of `_dag_to_partial_order_layers(dag)` may be just a subset of the output nodes.
+        partial_order_layers_tuple = frozenset(og.output_nodes), *partial_order_layers[1:]
+
+        cflow = cls(og, correction_function, partial_order_layers_tuple)
+        cflow.check_well_formed()
+
+        return cflow
 
     @override
     @classmethod
