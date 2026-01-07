@@ -839,7 +839,6 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
 
     """
 
-    # TODO: Fix
     @override
     @classmethod
     def from_correction_function(
@@ -873,25 +872,10 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
         if not _check_correction_function_domain(og, correction_function):
             raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionDomain)
 
-        ic_set = og.graph.nodes - set(og.input_nodes)
-        relations: list[tuple[int, int]] = []
-        for node, c_set in correction_function.items():
-            if not (set(c_set).issubset(ic_set) and len(c_set) == 1):
-                raise FlowPropositionError(FlowPropositionErrorReason.C0, node=node, correction_set=c_set)
-            if og.measurements[node].to_plane() in {Plane.XZ, Plane.YZ}:
-                raise FlowError("Causal flow is only defined on open graphs with XY measurements.")
-            c_node, *_ = c_set
-            relations.append((node, c_node))
-
-        partial_order_layers = _dag_to_partial_order_layers(nx.DiGraph(relations))
-
-        if partial_order_layers is None:
-            raise FlowError("The input correction function is not compatible with a partial order on the open graph.")
-
-        # The first element in the output of `_dag_to_partial_order_layers(dag)` may be just a subset of the output nodes.
-        partial_order_layers_tuple = frozenset(og.output_nodes), *partial_order_layers[1:]
-
-        cflow = cls(og, correction_function, partial_order_layers_tuple)
+        partial_order_layers = _correction_function_to_partial_order_layers(
+            og, correction_function
+        )  # May raise FlowGenericError
+        cflow = cls(og, correction_function, partial_order_layers)
         cflow.check_well_formed()
 
         return cflow
@@ -1106,6 +1090,16 @@ def _corrections_to_partial_order_layers(
     if oset:
         return oset, *generations[::-1]
     return generations[::-1]
+
+
+def _correction_function_to_partial_order_layers(
+    og: OpenGraph[_M_co], cf: Mapping[int, AbstractSet[int]]
+) -> tuple[frozenset[int], ...]:
+    try:
+        # The correction function can be intepreted as a collection of X or Z corrections when extracting a partial order.
+        return _corrections_to_partial_order_layers(og, cf, {})
+    except XZCorrectionsGenericError as err:
+        raise FlowGenericError(FlowGenericErrorReason.IncompatibleCorrectionFunction) from err
 
 
 def _check_correction_function_domain(

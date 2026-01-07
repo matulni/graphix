@@ -622,10 +622,12 @@ class TestXZCorrections:
 class TestFlow:
     """Bundle for unit tests of :class:`PauliFlow` and children."""
 
-    # @pytest.mark.parametrize("test_case", [generate_causal_flow_0(), generate_causal_flow_1()])
-    # def test_from_correction_function_cflow(self, test_case: CausalFlow[_PM_co]) -> None:
-    #     f = CausalFlow.from_correction_function(test_case.og, test_case.correction_function)
-    #     assert f is not None
+    @pytest.mark.parametrize("test_case", [generate_causal_flow_0(), generate_causal_flow_1()])
+    def test_from_correction_function_cflow(self, test_case: CausalFlow[AbstractPlanarMeasurement]) -> None:
+        f = CausalFlow.from_correction_function(test_case.og, test_case.correction_function)
+        assert f.og.isclose(test_case.og)
+        assert f.correction_function == test_case.correction_function
+        assert f.partial_order_layers == test_case.og.extract_causal_flow().partial_order_layers
 
     @pytest.mark.parametrize("test_case", [generate_gflow_0(), generate_gflow_1(), generate_gflow_2()])
     def test_from_correction_function_gflow(self, test_case: GFlow[AbstractPlanarMeasurement]) -> None:

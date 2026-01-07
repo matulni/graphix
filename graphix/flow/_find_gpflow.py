@@ -25,6 +25,7 @@ from graphix.fundamentals import AbstractMeasurement, AbstractPlanarMeasurement,
 from graphix.sim.base_backend import NodeIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from collections.abc import Set as AbstractSet
 
     from graphix.opengraph import OpenGraph
