@@ -419,7 +419,7 @@ class PauliFlow(Generic[_M_co]):
         Returns
         -------
         Self
-            A Pauli flow if the correction function is correct and compatible with a partial order on the open graph nodes.
+            A flow object if the correction function is correct and compatible with a partial order on the open graph nodes.
 
         Raises
         ------
