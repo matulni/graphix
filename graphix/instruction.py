@@ -46,6 +46,7 @@ class InstructionKind(Enum):
     CZ = enum.auto()
     H = enum.auto()
     S = enum.auto()
+    SDG = enum.auto()
     X = enum.auto()
     Y = enum.auto()
     Z = enum.auto()
@@ -191,6 +192,18 @@ class S(_KindChecker, BaseInstruction):
 
 
 @dataclass(repr=False)
+class SDG(_KindChecker, BaseInstruction):
+    """S dagger circuit instruction."""
+
+    target: int
+    kind: ClassVar[Literal[InstructionKind.SDG]] = field(default=InstructionKind.SDG, init=False)
+
+    @override
+    def visit(self, visitor: InstructionVisitor) -> SDG:
+        return SDG(visitor.visit_qubit(self.target))
+
+
+@dataclass(repr=False)
 class X(_KindChecker, BaseInstruction):
     """X circuit instruction."""
 
@@ -290,5 +303,5 @@ class RZ(_KindChecker, BaseInstruction):
         return RZ(visitor.visit_qubit(self.target), visitor.visit_angle(self.angle))
 
 
-InstructionWithoutRZZ = CCX | CNOT | SWAP | CZ | H | S | X | Y | Z | I | M | RX | RY | RZ
+InstructionWithoutRZZ = CCX | CNOT | SWAP | CZ | H | S | SDG | X | Y | Z | I | M | RX | RY | RZ
 Instruction = InstructionWithoutRZZ | RZZ

@@ -32,6 +32,7 @@ INSTRUCTION_TEST_CASES: list[InstructionTestCase] = [
     lambda _rng: instruction.SWAP((0, 1)),
     lambda _rng: instruction.H(0),
     lambda _rng: instruction.S(0),
+    lambda _rng: instruction.SDG(0),
     lambda _rng: instruction.X(0),
     lambda _rng: instruction.Y(0),
     lambda _rng: instruction.Z(0),
@@ -70,6 +71,14 @@ class TestTranspilerUnitGates:
     def test_s(self, fx_rng: Generator) -> None:
         circuit = Circuit(1)
         circuit.s(0)
+        pattern = circuit.transpile().pattern
+        state = circuit.simulate_statevector(rng=fx_rng).statevec
+        state_mbqc = pattern.simulate_pattern(rng=fx_rng)
+        assert state_mbqc.isclose(state)
+
+    def test_sdg(self, fx_rng: Generator) -> None:
+        circuit = Circuit(1)
+        circuit.sdg(0)
         pattern = circuit.transpile().pattern
         state = circuit.simulate_statevector(rng=fx_rng).statevec
         state_mbqc = pattern.simulate_pattern(rng=fx_rng)

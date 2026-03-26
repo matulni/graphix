@@ -84,7 +84,7 @@ def instruction_to_qasm3(instruction: Instruction) -> str:
             return qasm3_gate_call(
                 instruction.kind.name.lower(), args=[angle], operands=[qasm3_qubit(instruction.target)]
             )
-        case InstructionKind.H | InstructionKind.S | InstructionKind.X | InstructionKind.Y | InstructionKind.Z:
+        case InstructionKind.H | InstructionKind.S | InstructionKind.SDG | InstructionKind.X | InstructionKind.Y | InstructionKind.Z:
             return qasm3_gate_call(instruction.kind.name.lower(), [qasm3_qubit(instruction.target)])
         case InstructionKind.I:
             return qasm3_gate_call("id", [qasm3_qubit(instruction.target)])

@@ -127,6 +127,8 @@ class Circuit:
                 self.h(instr.target)
             case InstructionKind.S:
                 self.s(instr.target)
+            case InstructionKind.SDG:
+                self.sdg(instr.target)
             case InstructionKind.X:
                 self.x(instr.target)
             case InstructionKind.Y:
@@ -221,6 +223,17 @@ class Circuit:
         """
         assert qubit in self.active_qubits
         self.instruction.append(instruction.S(target=qubit))
+
+    def sdg(self, qubit: int) -> None:
+        """Apply an S dagger gate.
+
+        Parameters
+        ----------
+        qubit : int
+            target qubit
+        """
+        assert qubit in self.active_qubits
+        self.instruction.append(instruction.SDG(target=qubit))
 
     def x(self, qubit: int) -> None:
         """Apply a Pauli X gate.
@@ -409,6 +422,12 @@ class Circuit:
                     ancilla = [n_node, n_node + 1]
                     target = _check_target(out, instr.target)
                     out[instr.target], seq = self._s_command(target, ancilla)
+                    pattern.extend(seq)
+                    n_node += 2
+                case instruction.InstructionKind.SDG:
+                    ancilla = [n_node, n_node + 1]
+                    target = _check_target(out, instr.target)
+                    out[instr.target], seq = self._sdg_command(target, ancilla)
                     pattern.extend(seq)
                     n_node += 2
                 case instruction.InstructionKind.X:
@@ -601,6 +620,42 @@ class Circuit:
                 E(nodes=(input_node, ancilla[0])),
                 E(nodes=(ancilla[0], ancilla[1])),
                 M(input_node, -Measurement.Y),
+                M(node=ancilla[0], s_domain={input_node}),
+                X(node=ancilla[1], domain={ancilla[0]}),
+                Z(node=ancilla[1], domain={input_node}),
+            )
+        )
+        return ancilla[1], seq
+
+    @classmethod
+    def _sdg_command(cls, input_node: int, ancilla: Sequence[int]) -> tuple[int, list[command.Command]]:
+        """MBQC commands for S dagger gate.
+
+        Parameters
+        ----------
+        input_node : int
+            input node index
+        ancilla : list of two ints
+            ancilla node indices to be added to graph
+
+        Returns
+        -------
+        out_node : int
+            control node on graph after the gate
+        commands : list
+            list of MBQC commands
+        
+        Notes
+        -----
+        This command is equivalent ot the S-gate command upon conjugating all complex numbers, in other words, `-Measurement.Y -> Measurement.Y`.
+        """
+        assert len(ancilla) == 2
+        seq: list[Command] = [N(node=ancilla[0]), command.N(node=ancilla[1])]
+        seq.extend(
+            (
+                E(nodes=(input_node, ancilla[0])),
+                E(nodes=(ancilla[0], ancilla[1])),
+                M(input_node, Measurement.Y),
                 M(node=ancilla[0], s_domain={input_node}),
                 X(node=ancilla[1], domain={ancilla[0]}),
                 Z(node=ancilla[1], domain={input_node}),
@@ -979,6 +1034,8 @@ class Circuit:
                     pass
                 case instruction.InstructionKind.S:
                     evolve_single(Ops.S, instr.target)
+                case instruction.InstructionKind.SDG:
+                    evolve_single(Ops.SDG, instr.target)
                 case instruction.InstructionKind.H:
                     evolve_single(Ops.H, instr.target)
                 case instruction.InstructionKind.X:
