@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added new field `dim` to `PauliString` to represent the dimension of the Hilbert space.
   - Define `PauliString` on qubit indices and remove all `remap` methods.
   - Represent `x_map` and `z_map` attributes of `CliffordMap` as sequences of `PauliString` instead of mappings.
+  - Rename `PauliFlow.pauli_strings` property as `PauliFlow.extraction_pauli_strings`.
 
 ### Fixed
 

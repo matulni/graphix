@@ -84,7 +84,7 @@ class PauliString:
     axes : Mapping[int, Axis]
         Mapping between qubit indices and the applied Pauli operator.
     sign : Sign
-        Phase of the Pauli string.
+        Sign of the Pauli string.
 
     Notes
     -----
@@ -208,7 +208,7 @@ class PauliExponential:
         ----------
         [1] Simmons, 2021 (arXiv:2109.05654).
         """
-        pauli_string = flow.pauli_strings[node]
+        pauli_string = flow.extraction_pauli_strings[node]
         meas = flow.og.measurements[node]
         # We don't extract any rotation from Pauli Measurements. This is equivalent to setting the angle to 0.
         angle = meas.angle / 2 if isinstance(meas, BlochMeasurement) else 0
@@ -471,7 +471,7 @@ def clifford_z_map_from_focused_flow(flow: PauliFlow[Measurement]) -> tuple[Paul
     output_to_qubit_mapping.extend(flow.og.output_nodes)
     # Input nodes are either measured or outputs.
     return tuple(
-        flow.pauli_strings[node]
+        flow.extraction_pauli_strings[node]
         if node in flow.og.measurements
         else PauliString(dim, {output_to_qubit_mapping.index(node): Axis.Z})
         for node in flow.og.input_nodes
