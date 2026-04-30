@@ -13,14 +13,10 @@ from graphix.transpiler import Circuit
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import TypeAlias
 
     from graphix._linalg import MatGF2
     from graphix.circ_ext.extraction import CliffordMap, ExtractionResult, PauliExponential, PauliExponentialDAG
     from graphix.instruction import Instruction
-
-    # NOTE: This alias could be defined at the level of graphix.instruction, and treat all qubit indices as `Qubit`. This change would affect many files in the codebase, so as a temporary solution `Qubit` is casted to `int` in this module.
-    Qubit: TypeAlias = int | np.int_
 
 
 def er_to_circuit(
@@ -296,25 +292,25 @@ def cm_berg_pass(clifford_map: CliffordMap, circuit: Circuit) -> None:
 
         return int(col_idx_xx[0])  # Return pivot
 
-    def add_h(tab: MatGF2, instructions: list[Instruction], q: Qubit) -> None:
+    def add_h(tab: MatGF2, instructions: list[Instruction], q: int) -> None:
         q = int(q)  # Cast to `int` to avoid typing issues
         tab[:, -1] ^= tab[:, q] & tab[:, q + n]
         tab[:, [q, q + n]] = tab[:, [q + n, q]]  # The usual tuple assignment `a, b = b, a` does not work here.
         instructions.append(H(q))
 
-    def add_s(tab: MatGF2, instructions: list[Instruction], q: Qubit) -> None:
+    def add_s(tab: MatGF2, instructions: list[Instruction], q: int) -> None:
         tab[:, -1] ^= tab[:, q] & tab[:, q + n]
         tab[:, q + n] ^= tab[:, q]
         q = int(q)
         instructions.extend((S(q), Z(q)))  # We append Sdagger to get C instead of C^dagger
 
-    def add_cnot(tab: MatGF2, instructions: list[Instruction], qc: Qubit, qt: Qubit) -> None:
+    def add_cnot(tab: MatGF2, instructions: list[Instruction], qc: int, qt: int) -> None:
         tab[:, -1] ^= tab[:, qc] & tab[:, qt + n] & (tab[:, qt] ^ tab[:, qc + n] ^ 1)
         tab[:, qt] ^= tab[:, qc]
         tab[:, qc + n] ^= tab[:, qt + n]
         instructions.append(CNOT(control=int(qc), target=int(qt)))
 
-    def add_swap(tab: MatGF2, instructions: list[Instruction], q0: Qubit, q1: Qubit) -> None:
+    def add_swap(tab: MatGF2, instructions: list[Instruction], q0: int, q1: int) -> None:
         q0, q1 = int(q0), int(q1)  # Cast to `int` to avoid typing issues
         tab[:, [q0, q1, q0 + n, q1 + n]] = tab[:, [q1, q0, q1 + n, q0 + n]]
 
