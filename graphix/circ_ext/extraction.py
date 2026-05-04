@@ -159,6 +159,24 @@ class PauliString:
 
         return PauliString(dim, axes_dict, Sign.minus_if(negative_sign))
 
+    @staticmethod
+    def from_tableau(tab: MatGF2) -> PauliString:
+
+        dim = tab.shape[1] // 2
+        sign = Sign.minus_if(tab[0, -1])
+        axes: dict[int, Axis] = {}
+
+        for i, xz in enumerate(zip(tab[0, :dim], tab[0, dim:-1], strict=True)):
+            if xz == (1, 0):
+                axes[i] = Axis.X
+            elif xz == (0, 1):
+                axes[i] = Axis.Z
+            elif xz == (1, 1):
+                axes[i] = Axis.Y
+
+        return PauliString(dim, axes, sign)
+    
+    
     def to_tableau(self) -> MatGF2:
 
         tab = MatGF2(np.zeros((1, 2 * self.dim + 1)))
@@ -173,6 +191,16 @@ class PauliString:
             tab[0, 2 * self.dim] = 1
 
         return tab
+
+    def __str__(self) -> str:
+        """Return a string representation of the Pauli string."""
+        pauli_str: list[str] = [
+            str(self.sign),
+            *(getattr(self.axes.get(node), "name", "I") for node in range(self.dim)),
+        ]
+
+        return "".join(pauli_str)
+
 
 @dataclass(frozen=True)
 class PauliExponential:
