@@ -160,6 +160,20 @@ class PauliString:
 
         return PauliString(dim, axes_dict, Sign.minus_if(negative_sign))
 
+    def to_tableau(self) -> MatGF2:
+
+        tab = MatGF2(np.zeros((1, 2 * self.dim + 1)))
+
+        for i, ax in self.axes.items():
+            if ax in {Axis.X, Axis.Y}:
+                tab[0, i] = 1
+            if ax in {Axis.Y, Axis.Z}:
+                tab[0, i + self.dim] = 1
+
+        if self.sign is Sign.MINUS:
+            tab[0, 2 * self.dim] = 1
+
+        return tab
 
 @dataclass(frozen=True)
 class PauliExponential:
