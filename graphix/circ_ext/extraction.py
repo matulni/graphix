@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
+from functools import reduce
 
 import numpy as np
 
 from graphix._linalg import MatGF2
 from graphix.fundamentals import Axis, ParameterizedAngle, Plane, Sign
+from graphix.pauli import Pauli
 from graphix.measurements import BlochMeasurement, Measurement, PauliMeasurement
 from graphix.sim.base_backend import NodeIndex
 
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
     from graphix.flow.core import PauliFlow
     from graphix.opengraph import OpenGraph
     from graphix.transpiler import Circuit
+
+    import numpy.typing as npt
 
 
 @dataclass(frozen=True)
@@ -94,6 +98,9 @@ class PauliString:
     axes: Mapping[int, Axis]
     sign: Sign = Sign.PLUS
 
+    # TODO:
+    # from_measured_node remove as method
+
     @staticmethod
     def from_measured_node(flow: PauliFlow[Measurement], node: Node) -> PauliString:
         """Extract the Pauli string of a measured node and its focused correction set.
@@ -160,6 +167,40 @@ class PauliString:
         return PauliString(dim, axes_dict, Sign.minus_if(negative_sign))
 
     @staticmethod
+    def from_str(ps: str) -> PauliString:
+
+        if len(ps) < 2:
+            raise ValueError("Length of input string must be larger than 1.")
+
+        s, ops = ps[0], ps[1:]  # Mypy disallows string unpacking
+
+        dim = len(ops)
+        axes: dict[int, Axis] = {}
+
+        match s:
+            case "+":
+                sign = Sign.PLUS
+            case "-":
+                sign = Sign.MINUS
+            case _:
+                raise ValueError("Input string must start with '+' or '-'.")
+
+        for i, op in enumerate(ops):
+            match op:
+                case "X":
+                    axes[i] = Axis.X
+                case "Y":
+                    axes[i] = Axis.Y
+                case "Z":
+                    axes[i] = Axis.Z
+                case "I":
+                    continue
+                case _:
+                    raise ValueError(f"{op} is not a valid Pauli operators. Operators must be X, Y, Z or I.")
+
+        return PauliString(dim, axes, sign)
+
+    @staticmethod
     def from_tableau(tab: MatGF2) -> PauliString:
 
         dim = tab.shape[1] // 2
@@ -175,8 +216,7 @@ class PauliString:
                 axes[i] = Axis.Y
 
         return PauliString(dim, axes, sign)
-    
-    
+
     def to_tableau(self) -> MatGF2:
 
         tab = MatGF2(np.zeros((1, 2 * self.dim + 1)))
@@ -191,6 +231,11 @@ class PauliString:
             tab[0, 2 * self.dim] = 1
 
         return tab
+
+    def to_numpy_array(self) -> npt.NDArray[np.complex128]:
+        ops = (Pauli.from_axis(self.axes[i]).matrix if i in self.axes else np.eye(2) for i in range(self.dim))
+
+        return self.sign.value * reduce(np.kron, ops, 1)
 
     def __str__(self) -> str:
         """Return a string representation of the Pauli string."""
