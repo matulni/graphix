@@ -37,7 +37,7 @@ _PM_co = TypeVar("_PM_co", bound=AbstractPlanarMeasurement, covariant=True)
 class AlgebraicOpenGraph(Generic[_AM_co]):
     """A class for providing an algebraic representation of open graphs as introduced in [1]. In particular, it allows managing the mapping between node labels of the graph and the relevant matrix indices. The flow-demand and order-demand matrices are cached properties.
 
-    It reuses the class `:class: graphix.sim.base_backend.NodeIndex` introduced for managing the mapping between node numbers and qubit indices in the internal state of the backend.
+    It reuses the class :class:`graphix.sim.base_backend.NodeIndex` introduced for managing the mapping between node numbers and qubit indices in the internal state of the backend.
 
     Attributes
     ----------
@@ -48,7 +48,7 @@ class AlgebraicOpenGraph(Generic[_AM_co]):
 
     Notes
     -----
-    At initialization, `non_outputs_optim` is a copy of `non_outputs`. The nodes corresponding to zero-rows of the order-demand matrix are removed for calculating the :math:`P` matrix more efficiently in the `:func: _compute_correction_matrix_general` routine.
+    At initialization, ``non_outputs_optim`` is a copy of ``non_outputs``. The nodes corresponding to zero-rows of the order-demand matrix are removed for calculating the :math:`P` matrix more efficiently in the :func:`_compute_correction_matrix_general` routine.
 
     References
     ----------
@@ -193,15 +193,15 @@ class AlgebraicOpenGraph(Generic[_AM_co]):
 
         Notes
         -----
-        Measurements with a Pauli angle are intepreted as `Axis` instances.
+        Measurements with a Pauli angle are intepreted as ``Axis`` instances.
         """
         return self.og.measurements[node].to_plane_or_axis()
 
 
 class PlanarAlgebraicOpenGraph(AlgebraicOpenGraph[_PM_co]):
-    """A subclass of `AlgebraicOpenGraph`.
+    """A subclass of ``AlgebraicOpenGraph``.
 
-    This class differs from its parent class only in that Pauli measurements are interpreted as `Plane` instances (instead of `Axis`) when constructing the flow-demand and order-demand matrices. This allows to verify if open graphs with measurements along Pauli angles interpreted as planes have generalised flow.
+    This class differs from its parent class only in that Pauli measurements are interpreted as ``Plane`` instances (instead of ``Axis``) when constructing the flow-demand and order-demand matrices. This allows to verify if open graphs with measurements along Pauli angles interpreted as planes have generalised flow.
 
     """
 
@@ -221,7 +221,7 @@ class PlanarAlgebraicOpenGraph(AlgebraicOpenGraph[_PM_co]):
 
         Notes
         -----
-        Measurements with a Pauli angle are intepreted as `Plane` instances.
+        Measurements with a Pauli angle are intepreted as ``Plane`` instances.
         """
         return self.og.measurements[node].to_plane()
 
@@ -237,7 +237,7 @@ class CorrectionMatrix(Generic[_AM_co]):
 
     Notes
     -----
-    The correction matrix :math:`C` is an :math:`(n - n_I) \times (n - n_O)` matrix related to the correction function :math:`c(v) = \{u \in I^c|C_{u,v} = 1\}`, where :math:`I^c` are the non-input nodes of `aog`. In other words, the column :math:`v` of :math:`C` encodes the correction set of :math:`v`, :math:`c(v)`.
+    The correction matrix :math:`C` is an :math:`(n - n_I) \times (n - n_O)` matrix related to the correction function :math:`c(v) = \{u \in I^c|C_{u,v} = 1\}`, where :math:`I^c` are the non-input nodes of ``aog``. In other words, the column :math:`v` of :math:`C` encodes the correction set of :math:`v`, :math:`c(v)`.
 
     See Definition 3.6 in Mitosek and Backens, 2024 (arXiv:2410.23439).
 
@@ -252,7 +252,7 @@ class CorrectionMatrix(Generic[_AM_co]):
         Returns
         -------
         correction_function : dict[int, frozenset[int]]
-            Pauli (or generalised) flow correction function. `correction_function[i]` is the set of qubits correcting the measurement of qubit `i`.
+            Pauli (or generalised) flow correction function. ``correction_function[i]`` is the set of qubits correcting the measurement of qubit ``i``.
         """
         row_tags = self.aog.non_inputs
         col_tags = self.aog.non_outputs
@@ -276,11 +276,8 @@ def _compute_p_matrix(aog: AlgebraicOpenGraph[_AM_co], nb_matrix: MatGF2) -> Mat
 
     Returns
     -------
-    p_matrix : MatGF2
-        Matrix encoding the correction function.
-
-    or `None`
-        if the input open graph does not have Pauli flow.
+    p_matrix : MatGF2 | None
+        Matrix encoding the correction function or ``None`` if the input open graph does not have Pauli flow.
 
     Notes
     -----
@@ -353,9 +350,9 @@ def _update_p_matrix(
     solvable_nodes: AbstractSet[int],
     n_oi_diff: int,
 ) -> None:
-    """Update `p_matrix`.
+    """Update ``p_matrix``.
 
-    The solution of the linear system associated with node :math:`v` in `solvable_nodes` corresponds to the column of `p_matrix` associated with node :math:`v`.
+    The solution of the linear system associated with node :math:`v` in ``solvable_nodes`` corresponds to the column of ``p_matrix`` associated with node :math:`v`.
 
     See Theorem 4.4, steps 12.b and 12.c in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
@@ -377,9 +374,9 @@ def _update_kls_matrix(
     n_no: int,
     n_no_optim: int,
 ) -> None:
-    """Update `kls_matrix`.
+    """Update ``kls_matrix``.
 
-    Bring the linear system encoded in :math:`K_{LS}` to the row-echelon form (REF) that would be achieved by Gaussian elimination if the row and column vectors corresponding to vertices in `solvable_nodes` where not included in the starting matrix.
+    Bring the linear system encoded in :math:`K_{LS}` to the row-echelon form (REF) that would be achieved by Gaussian elimination if the row and column vectors corresponding to vertices in ``solvable_nodes`` where not included in the starting matrix.
 
     See Theorem 4.4, step 12.d in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
@@ -387,9 +384,9 @@ def _update_kls_matrix(
     row_permutation: list[int]
 
     def reorder(old_pos: int, new_pos: int) -> None:  # Used in step 12.d.vi
-        """Reorder the elements of `row_permutation`.
+        """Reorder the elements of ``row_permutation``.
 
-        The element at `old_pos` is placed on the right of the element at `new_pos`.
+        The element at ``old_pos`` is placed on the right of the element at ``new_pos``.
         Example:
         ```
         row_permutation = [0, 1, 2, 3, 4]
@@ -480,18 +477,15 @@ def _compute_correction_matrix_general_case(
 
     Returns
     -------
-    correction_matrix : MatGF2
-        Matrix encoding the correction function.
-
-    or `None`
-        if the input open graph does not have Pauli flow.
+    correction_matrix : MatGF2 | None
+        Matrix encoding the correction function or ``None`` if the input open graph does not have Pauli flow.
 
     Notes
     -----
-    - The function returns `None` if
+    - The function returns ``None`` if
         a) The flow-demand matrix is not invertible, or
         b) Not all linear systems of equations associated to the non-output nodes are solvable,
-    meaning that `aog` does not have Pauli flow.
+    meaning that ``aog`` does not have Pauli flow.
     Condition (b) is satisfied when the flow-demand matrix :math:`M` does not have a right inverse :math:`C` such that :math:`NC` represents a directed acyclical graph (DAG).
 
     See Theorem 4.4 and Algorithm 3 in Mitosek and Backens, 2024 (arXiv:2410.23439).
@@ -545,17 +539,15 @@ def _try_ordering_matrix_to_topological_generations(ordering_matrix: MatGF2) -> 
 
     Returns
     -------
-    tuple[frozenset[int], ...]
-        Topological generations. Integers represent the indices of the matrix `ordering_matrix`, not the labelling of the nodes.
-
-    or `None`
-        if `ordering_matrix` is not a DAG.
+    tuple[frozenset[int], ...] | None
+        Topological generations. Integers represent the indices of the matrix `ordering_matrix`, not the labelling of the nodes
+        or ``None`` if ``ordering_matrix`` is not a DAG.
 
     Notes
     -----
-    This function is adapted from `:func: networkx.algorithms.dag.topological_generations` so that it works directly on the adjacency matrix (which is the output of the Pauli-flow finding algorithm) instead of a `:class: nx.DiGraph` object. This avoids calling the function `nx.from_numpy_array` which can be expensive for certain graph instances.
+    This function is adapted from :func:`networkx.algorithms.dag.topological_generations` so that it works directly on the adjacency matrix (which is the output of the Pauli-flow finding algorithm) instead of a :class:`nx.DiGraph` object. This avoids calling the function ``nx.from_numpy_array`` which can be expensive for certain graph instances.
 
-    Here we use the convention that the element `ordering_matrix[i,j]` represents a link `j -> i`. NetworkX uses the opposite convention.
+    Here we use the convention that the element ``ordering_matrix[i,j]`` represents a link ``j -> i``. NetworkX uses the opposite convention.
     """
     adj_mat = ordering_matrix
 
@@ -582,15 +574,13 @@ def compute_partial_order_layers(correction_matrix: CorrectionMatrix[_AM_co]) ->
 
     Returns
     -------
-    layers : tuple[frozenset[int], ...]
-        Partial order between corrected qubits in a layer form. The frozenset `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`. Output nodes are always in layer 0 when they exist.
-
-    or `None`
-        If the correction matrix is not compatible with a partial order on the the open graph, in which case the associated ordering matrix is not a DAG. In the context of the flow-finding algorithm, this means that the input open graph does not have Pauli (or generalised) flow.
+    layers : tuple[frozenset[int], ...] | None
+        Partial order between corrected qubits in a layer form. The frozenset ``layers[i]`` comprises the nodes in layer ``i``. Nodes in layer ``i`` are "larger" in the partial order than nodes in layer ``i+1``. Output nodes are always in layer 0 when they exist
+        or ``None`` if the correction matrix is not compatible with a partial order on the the open graph, in which case the associated ordering matrix is not a DAG. In the context of the flow-finding algorithm, this means that the input open graph does not have Pauli (or generalised) flow.
 
     Notes
     -----
-    - The partial order of the Pauli (or generalised) flow :math:`<_c` is the transitive closure of :math:`\lhd_c`, where the latter is related to the ordering matrix :math:`NC` as :math:`v \lhd_c w \Leftrightarrow (NC)_{w,v} = 1`, for :math:`v, w, \in O^c` two non-output nodes of `aog`. The ordering matrix is the product of the order-demand and the correction matrices and it is the adjacency matrix of the directed acyclical graph encoding the partial order.
+    - The partial order of the Pauli (or generalised) flow :math:`<_c` is the transitive closure of :math:`\lhd_c`, where the latter is related to the ordering matrix :math:`NC` as :math:`v \lhd_c w \Leftrightarrow (NC)_{w,v} = 1`, for :math:`v, w, \in O^c` two non-output nodes of ``aog``. The ordering matrix is the product of the order-demand and the correction matrices and it is the adjacency matrix of the directed acyclical graph encoding the partial order.
 
     See Lemma 3.12, and Theorem 3.1 in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
@@ -620,15 +610,12 @@ def compute_correction_matrix(aog: AlgebraicOpenGraph[_AM_co]) -> CorrectionMatr
 
     Returns
     -------
-    correction_matrix : CorrectionMatrix[_AM_co]
-        Algebraic representation of the correction function.
-
-    or `None`
-        if the input open graph does not have Pauli (or generalised) flow.
+    correction_matrix : CorrectionMatrix[_AM_co] | None
+        Algebraic representation of the correction function or ``None`` if the input open graph does not have Pauli (or generalised) flow.
 
     Notes
     -----
-    - In the case of open graphs with equal number of inputs and outputs, the function only returns `None` when the flow-demand matrix is not invertible (meaning that `aog` does not have Pauli flow). The additional condition for the existence of Pauli flow that the ordering matrix :math:`NC` must encode a directed acyclic graph (DAG) is verified by :func:`compute_partial_order`, which is called from the `graphix.flow.core.PauliFlow` constructor.
+    - In the case of open graphs with equal number of inputs and outputs, the function only returns ``None`` when the flow-demand matrix is not invertible (meaning that ``aog`` does not have Pauli flow). The additional condition for the existence of Pauli flow that the ordering matrix :math:`NC` must encode a directed acyclic graph (DAG) is verified by :func:`compute_partial_order`, which is called from the ``graphix.flow.core.PauliFlow`` constructor.
 
     - See Definitions 3.4, 3.5 and 3.6, Theorems 3.1, 4.2 and 4.4, and Algorithms 2 and 3 in Mitosek and Backens, 2024 (arXiv:2410.23439).
     """
