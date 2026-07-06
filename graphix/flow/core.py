@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 from collections import defaultdict
 from collections.abc import Sequence
-from copy import copy
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Generic, TypeVar
@@ -625,7 +624,7 @@ class PauliFlow(Generic[_AM_co]):
         return cls(correction_matrix.aog.og, correction_function, partial_order_layers)
 
     def to_corrections(self) -> XZCorrections[_AM_co]:
-        """Compute the X and Z corrections induced by the Pauli flow encoded in `self`.
+        """Compute the X and Z corrections induced by the Pauli flow encoded in ``self``.
 
         Returns
         -------
@@ -642,18 +641,18 @@ class PauliFlow(Generic[_AM_co]):
         x_corrections: dict[int, AbstractSet[int]] = {}  # {domain: nodes}
         z_corrections: dict[int, AbstractSet[int]] = {}  # {domain: nodes}
 
-        if self.partial_order_layers:
-            future = copy(self.partial_order_layers[0])  # Sets are mutable
-            for layer in self.partial_order_layers[1:]:
-                for measured_node in layer:
-                    correcting_set = self.correction_function[measured_node]
-                    # Conditionals avoid storing empty correction sets
-                    if x_corrected_nodes := correcting_set & future:
-                        x_corrections[measured_node] = frozenset(x_corrected_nodes)
-                    if z_corrected_nodes := self.og.odd_neighbors(correcting_set) & future:
-                        z_corrections[measured_node] = frozenset(z_corrected_nodes)
+        future: set[int] = set()
+        for layer in self.partial_order_layers:
+            for measured_node in layer:
+                # First layer in ``self.partial_order_layers`` may contain output nodes which are not in ``correction_function`` keys.
+                correcting_set = self.correction_function.get(measured_node, set())
+                # Conditionals avoid storing empty correction sets
+                if x_corrected_nodes := correcting_set & future:
+                    x_corrections[measured_node] = frozenset(x_corrected_nodes)
+                if z_corrected_nodes := self.og.odd_neighbors(correcting_set) & future:
+                    z_corrections[measured_node] = frozenset(z_corrected_nodes)
 
-                future |= layer
+            future |= layer
 
         return XZCorrections(self.og, x_corrections, z_corrections, self.partial_order_layers)
 
