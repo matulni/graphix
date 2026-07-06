@@ -688,16 +688,16 @@ class PauliFlow(Generic[_AM_co]):
             - The first layer of the partial order layers contains the outputs of the open graph if there are any.
 
         Specific properties of Pauli flows:
-            - If :math:`j \in p(i), i \neq j, \lambda(j) \notin \{X, Y\}``, then :math:``i \prec j` (P1).
-            - If :math:`j \in Odd(p(i)), i \neq j, \lambda(j) \notin \{Y, Z\}``, then :math:``i \prec j` (P2).
-            - If :math:`neg i \prec j, i \neq j, \lambda(j) = Y``, then either :math:``j \notin p(i)`` and :math:``j \in Odd((p(i)))`` or :math:``j \in p(i)`` and :math:``j \notin Odd((p(i)))` (P3).
-            - If :math:`\lambda(i) = XY``, then :math:``i \notin p(i)`` and :math:``i \in Odd((p(i)))` (P4).
-            - If :math:`\lambda(i) = XZ``, then :math:``i \in p(i)`` and :math:``i \in Odd((p(i)))` (P5).
-            - If :math:`\lambda(i) = YZ``, then :math:``i \in p(i)`` and :math:``i \notin Odd((p(i)))` (P6).
-            - If :math:`\lambda(i) = X``, then :math:``i \in Odd((p(i)))` (P7).
-            - If :math:`\lambda(i) = Z``, then :math:``i \in p(i)` (P8).
-            - If :math:`\lambda(i) = Y``, then either :math:``i \notin p(i)`` and :math:``i \in Odd((p(i)))`` or :math:``i \in p(i)`` and :math:``i \notin Odd((p(i)))` (P9),
-        where :math:`i \in O^c``, :math:``c`` is the correction function, :math:``prec`` denotes the partial order, :math:``\lambda(i)`` is the measurement plane or axis of node :math:``i``, and :math:``Odd(s)`` is the odd neighbourhood of the set :math:``s` in the open graph.
+            - If :math:`j \in p(i), i \neq j, \lambda(j) \notin \{X, Y\}`, then :math:`i \prec j` (P1).
+            - If :math:`j \in Odd(p(i)), i \neq j, \lambda(j) \notin \{Y, Z\}`, then :math:`i \prec j` (P2).
+            - If :math:`neg i \prec j, i \neq j, \lambda(j) = Y`, then either :math:`j \notin p(i)` and :math:`j \in Odd((p(i)))` or :math:`j \in p(i)` and :math:`j \notin Odd((p(i)))` (P3).
+            - If :math:`\lambda(i) = XY`, then :math:`i \notin p(i)` and :math:`i \in Odd((p(i)))` (P4).
+            - If :math:`\lambda(i) = XZ`, then :math:`i \in p(i)` and :math:`i \in Odd((p(i)))` (P5).
+            - If :math:`\lambda(i) = YZ`, then :math:`i \in p(i)` and :math:`i \notin Odd((p(i)))` (P6).
+            - If :math:`\lambda(i) = X`, then :math:`i \in Odd((p(i)))` (P7).
+            - If :math:`\lambda(i) = Z`, then :math:`i \in p(i)` (P8).
+            - If :math:`\lambda(i) = Y`, then either :math:`i \notin p(i)` and :math:`i \in Odd((p(i)))` or :math:`i \in p(i)` and :math:`i \notin Odd((p(i)))` (P9),
+        where :math:`i \in O^c`, :math:`c` is the correction function, :math:`prec` denotes the partial order, :math:`\lambda(i)` is the measurement plane or axis of node :math:`i`, and :math:`Odd(s)` is the odd neighbourhood of the set :math:`s` in the open graph.
 
         See Definition 5 in Ref. [1] or Definition 2.4 in Ref. [2].
 
@@ -974,7 +974,7 @@ class PauliFlow(Generic[_AM_co]):
         -----
         - This method implements the algorithm in [1].
 
-        - Flows are guaranteed to be focused if obtained from :func:`OpenGraph.extract_pauli_flow`` or :func:``OpenGraph.extract_gflow` (see [2]).
+        - Flows are guaranteed to be focused if obtained from :func:`OpenGraph.extract_pauli_flow` or :func:`OpenGraph.extract_gflow` (see [2]).
 
         References
         ----------
@@ -1043,7 +1043,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
         -----
         - This function partially implements Theorem 2 in Ref. [1]. The generated XZ-corrections can be used to obtain a robustly deterministic pattern on the underlying open graph.
 
-        - Contrary to the overridden method in the parent class, here we do not need any information on the partial order to build the corrections since a valid correction function :math:`g`` guarantees that both :math:``g(i)\setminus \{i\}`` and :math:``Odd(g(i))`` are in the future of :math:``i`.
+        - Contrary to the overridden method in the parent class, here we do not need any information on the partial order to build the corrections since a valid correction function :math:`g` guarantees that both :math:`g(i)\setminus \{i\}` and :math:`Odd(g(i))` are in the future of :math:`i`.
 
         References
         ----------
@@ -1078,12 +1078,12 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
             - The first layer of the partial order layers contains the outputs of the open graph if there are any.
 
         Specific properties of gflows:
-            - If :math:`j \in g(i), i \neq j``, then :math:``i \prec j` (G1).
-            - If :math:`j \in Odd(g(i)), i \neq j``, then :math:``i \prec j` (G2).
-            - If :math:`\lambda(i) = XY``, then :math:``i \notin g(i)`` and :math:``i \in Odd((g(i)))` (G3).
-            - If :math:`\lambda(i) = XZ``, then :math:``i \in g(i)`` and :math:``i \in Odd((g(i)))` (G4).
-            - If :math:`\lambda(i) = YZ``, then :math:``i \in g(i)`` and :math:``i \notin Odd((g(i)))` (G5),
-        where :math:`i \in O^c``, :math:``g`` is the correction function, :math:``prec`` denotes the partial order, :math:``\lambda(i)`` is the measurement plane of node :math:``i``, and :math:``Odd(s)`` is the odd neighbourhood of the set :math:``s` in the open graph.
+            - If :math:`j \in g(i), i \neq j`, then :math:`i \prec j` (G1).
+            - If :math:`j \in Odd(g(i)), i \neq j`, then :math:`i \prec j` (G2).
+            - If :math:`\lambda(i) = XY`, then :math:`i \notin g(i)`` and :math:`i \in Odd((g(i)))` (G3).
+            - If :math:`\lambda(i) = XZ`, then :math:`i \in g(i)`` and :math:`i \in Odd((g(i)))` (G4).
+            - If :math:`\lambda(i) = YZ`, then :math:`i \in g(i)`` and :math:`i \notin Odd((g(i)))` (G5),
+        where :math:`i \in O^c`, :math:`g` is the correction function, :math:`prec` denotes the partial order, :math:`\lambda(i)` is the measurement plane of node :math:`i`, and :math:`Odd(s)` is the odd neighbourhood of the set :math:`s` in the open graph.
 
         See Definition 2.36 in Ref. [1].
 
@@ -1239,7 +1239,7 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
             - :math:`i \sim c(i)` (C1),
             - :math:`i \prec c(i)` (C2),
             - :math:`\forall k \in N_G(c(i)) \setminus \{i\}, i \prec k` (C3),
-        where :math:`i \in O^c``, :math:``c`` is the correction function and :math:``prec` denotes the partial order.
+        where :math:`i \in O^c`, :math:`c` is the correction function and :math:`prec` denotes the partial order.
 
         Causal flows are defined on open graphs with XY measurements only.
 
