@@ -255,7 +255,7 @@ class TestPattern:
         pattern.remove_pauli_measurements()
         input_node_set = set(pattern.input_nodes)
         assert not any(
-            cmd.measurement.try_to_pauli() is not None
+            cmd.measurement.to_pauli_or_none() is not None
             for cmd in pattern
             if cmd.kind == CommandKind.M and cmd.node not in input_node_set
         )

@@ -480,7 +480,7 @@ class StandardizedPattern(_StandardizedPattern):
 
     def _warn_non_inferred_pauli_measurements(self, stacklevel: int) -> None:
         for m in self.m_list:
-            if isinstance(m.measurement, BlochMeasurement) and m.measurement.try_to_pauli() is not None:
+            if isinstance(m.measurement, BlochMeasurement) and m.measurement.to_pauli_or_none() is not None:
                 warn("Pattern with non-inferred Pauli measurements.", stacklevel=stacklevel + 1)
                 return
 

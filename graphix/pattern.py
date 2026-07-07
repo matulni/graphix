@@ -1502,7 +1502,7 @@ class Pattern:
             if (
                 cmd.kind == CommandKind.M
                 and isinstance(cmd.measurement, BlochMeasurement)
-                and cmd.measurement.try_to_pauli() is not None
+                and cmd.measurement.to_pauli_or_none() is not None
             ):
                 warnings.warn("Pattern with non-inferred Pauli measurements.", stacklevel=stacklevel + 1)
                 return

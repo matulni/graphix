@@ -826,7 +826,7 @@ class OpenGraph(Generic[_AM_co]):
 
     def _warn_non_inferred_pauli_measurements(self, stacklevel: int) -> None:
         for m in self.measurements.values():
-            if isinstance(m, BlochMeasurement) and m.try_to_pauli() is not None:
+            if isinstance(m, BlochMeasurement) and m.to_pauli_or_none() is not None:
                 warn("Open graph with non-inferred Pauli measurements.", stacklevel=stacklevel + 1)
                 return
 
