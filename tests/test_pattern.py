@@ -292,7 +292,7 @@ class TestPattern:
         pattern.shift_signals(method="mc")
         pattern = pattern.infer_pauli_measurements()
         pattern_opt = pattern.remove_pauli_measurements(copy=True)
-        isolated_nodes = pattern_opt.extract_isolated_nodes()
+        isolated_nodes = pattern_opt.isolated_nodes()
         assert isolated_nodes == set()
         pattern.minimize_space()
         pattern_opt.minimize_space()
@@ -315,7 +315,7 @@ class TestPattern:
         state1 = pattern1.simulate_pattern(rng=rng)
         assert state.isclose(state1)
 
-    def test_extract_measurement_commands(self) -> None:
+    def test_measurement_commands(self) -> None:
         preset_meas_plane = [
             Plane.XY,
             Plane.XY,
@@ -342,7 +342,7 @@ class TestPattern:
             7: M(7, Measurement.YZ(0)),
             8: M(8, Measurement.XZ(0.5)),
         }
-        meas = pattern.extract_measurement_commands()
+        meas = pattern.measurement_commands()
         assert meas == ref_meas
 
     @pytest.mark.parametrize("plane", Plane)
@@ -754,7 +754,7 @@ class TestPattern:
 
         pattern = Pattern(cmds=[N(0), M(0, s_domain={0})])
         with pytest.raises(RunnabilityError) as exc_info:
-            pattern.extract_partial_order_layers()
+            pattern.partial_order_layers()
         assert exc_info.value.node == 0
         assert exc_info.value.reason == RunnabilityErrorReason.DomainSelfLoop
 
@@ -770,8 +770,8 @@ class TestPattern:
         assert exc_info.value.node == 1
         assert exc_info.value.reason == RunnabilityErrorReason.NotYetMeasured
 
-    def test_compute_max_degree_empty_pattern(self) -> None:
-        assert Pattern().compute_max_degree() == 0
+    def test_max_degree_empty_pattern(self) -> None:
+        assert Pattern().max_degree() == 0
 
     @pytest.mark.parametrize(
         "test_case",
@@ -796,21 +796,21 @@ class TestPattern:
             ),  # double edge in DAG
         ],
     )
-    def test_extract_partial_order_layers(self, test_case: tuple[Pattern, tuple[frozenset[int], ...]]) -> None:
-        assert test_case[0].extract_partial_order_layers() == test_case[1]
+    def test_partial_order_layers(self, test_case: tuple[Pattern, tuple[frozenset[int], ...]]) -> None:
+        assert test_case[0].partial_order_layers() == test_case[1]
 
-    def test_extract_partial_order_layers_results(self) -> None:
+    def test_partial_order_layers_results(self) -> None:
         c = Circuit(1)
         c.rz(0, 0.2)
         p = c.transpile().pattern
         p = p.infer_pauli_measurements()
         p.remove_pauli_measurements()
-        assert p.extract_partial_order_layers() == (frozenset({1}), frozenset({0}))
+        assert p.partial_order_layers() == (frozenset({1}), frozenset({0}))
 
         p = Pattern(cmds=[N(0), N(1), N(2), M(0), E((1, 2)), X(1, {0}), M(2, Measurement.XY(0.3))])
         p = p.infer_pauli_measurements()
         p.remove_pauli_measurements()
-        assert p.extract_partial_order_layers() == (frozenset({1}), frozenset({2}))
+        assert p.partial_order_layers() == (frozenset({1}), frozenset({2}))
 
     class PatternFlowTestCase(NamedTuple):
         pattern: Pattern
@@ -1237,7 +1237,7 @@ class TestMCOps:
         pattern = circuit.transpile().pattern
         assert len(list(iter(pattern))) == 0
 
-    def test_extract_graph(self) -> None:
+    def test_graph(self) -> None:
         n = 3
         g = nx.complete_graph(n)
         circuit = Circuit(n)
@@ -1249,7 +1249,7 @@ class TestMCOps:
             circuit.rx(v, ANGLE_PI / 9)
 
         pattern = circuit.transpile().pattern
-        graph = pattern.extract_graph()
+        graph = pattern.graph()
 
         graph_ref: nx.Graph[int] = nx.Graph()
         graph_ref.add_nodes_from(range(27))

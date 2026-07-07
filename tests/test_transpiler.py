@@ -253,7 +253,7 @@ class TestTranspilerUnitGates:
         expected_outcomes: list[Outcome] = [1 if q % 2 else 0 for q in range(n)]
         results_circuit: dict[int, Outcome] = dict(zip(range(n), expected_outcomes, strict=False))
         m_outcomes = dict(zip(transpile_result.classical_outputs, expected_outcomes, strict=False))
-        non_output_nodes = pattern.extract_nodes() - set(pattern.output_nodes)
+        non_output_nodes = pattern.nodes() - set(pattern.output_nodes)
         results_pattern: dict[int, Outcome] = {node: m_outcomes.get(node, 0) for node in non_output_nodes}
         input_state = rand_state_vector(width, rng=rng)
         measure_method = DefaultMeasureMethod()

@@ -639,7 +639,7 @@ class TensorNetworkBackend(_AbstractTensorNetworkBackend):
                     stacklevel=1,
                 )
             case "auto":
-                max_degree = pattern.compute_max_degree()
+                max_degree = pattern.max_degree()
                 # "parallel" does not support non standard pattern
                 graph_prep = "sequential" if max_degree > 5 or not pattern.is_standard() else "parallel"
             case _:
@@ -648,7 +648,7 @@ class TensorNetworkBackend(_AbstractTensorNetworkBackend):
         if graph_prep == "parallel":
             if not pattern.is_standard():
                 raise ValueError("parallel preparation strategy does not support not-standardized pattern")
-            graph = pattern.extract_graph()
+            graph = pattern.graph()
             state = MBQCTensorNet(
                 graph_nodes=graph.nodes,
                 graph_edges=graph.edges,
@@ -659,7 +659,7 @@ class TensorNetworkBackend(_AbstractTensorNetworkBackend):
         else:  # graph_prep == "sequential":
             state = MBQCTensorNet(default_output_nodes=pattern.output_nodes, branch_selector=branch_selector)
             decomposed_cz = _decompose_cz()
-        isolated_nodes = pattern.extract_isolated_nodes()
+        isolated_nodes = pattern.isolated_nodes()
         super().__init__(
             state,
             pattern,

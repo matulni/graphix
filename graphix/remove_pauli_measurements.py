@@ -256,7 +256,7 @@ class _RemovePauliMeasurements:
 
     def __init__(self, cut: PauliPushingCut) -> None:
         self.cut = cut
-        self.graph = cut.original_pattern.extract_graph()
+        self.graph = cut.original_pattern.graph()
         self.node_specs = {node: _NodeSpec(node) for node in self.graph.nodes()}
         for node, domain in cut.original_pattern.x_dict.items():
             self.node_specs[node].domains.s_domain = _expand_domain(cut.shifted_domains, domain)

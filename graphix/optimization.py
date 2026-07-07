@@ -221,7 +221,7 @@ class StandardizedPattern(_StandardizedPattern):
                     c_dict[cmd.node] = cmd.clifford @ c_dict.get(cmd.node, Clifford.I)
         return cls(pattern.input_nodes, pattern.output_nodes, n_list, e_set, m_list, z_dict, x_dict, c_dict)
 
-    def extract_graph(self) -> nx.Graph[int]:
+    def graph(self) -> nx.Graph[int]:
         """Return the graph state from the command sequence, extracted from 'N' and 'E' commands.
 
         Returns
@@ -353,9 +353,9 @@ class StandardizedPattern(_StandardizedPattern):
                     f"Open graph construction in flow extraction requires N commands to represent a |+⟩ state. Error found in {n}."
                 )
         measurements = {m.node: m.measurement for m in self.m_list}
-        return OpenGraph(self.extract_graph(), self.input_nodes, self.output_nodes, measurements, self.c_dict)
+        return OpenGraph(self.graph(), self.input_nodes, self.output_nodes, measurements, self.c_dict)
 
-    def extract_partial_order_layers(self) -> tuple[frozenset[int], ...]:
+    def partial_order_layers(self) -> tuple[frozenset[int], ...]:
         """Extract the measurement order of the pattern in the form of layers.
 
         This method builds a directed acyclical graph (DAG) from the pattern and then performs a topological sort.
@@ -617,7 +617,7 @@ def remove_local_clifford_commands(pattern: Pattern) -> Pattern:
     """
     from graphix.pattern import Pattern  # noqa: PLC0415
 
-    nodes = pattern.extract_nodes()
+    nodes = pattern.nodes()
     if not nodes:
         return pattern
     max_node = max(nodes)

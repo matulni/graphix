@@ -506,7 +506,7 @@ class TestXZCorrections:
         assert not corrections.is_compatible([1, 2])  # Incomplete order
         assert not corrections.is_compatible([0, 1, 2, 3])  # Contains outputs
 
-        assert nx.utils.graphs_equal(corrections.extract_dag(), nx.DiGraph([(0, 1), (0, 2), (1, 2), (2, 3), (1, 3)]))
+        assert nx.utils.graphs_equal(corrections.dag(), nx.DiGraph([(0, 1), (0, 2), (1, 2), (2, 3), (1, 3)]))
 
     # See `:func: generate_causal_flow_1`
     def test_order_1(self) -> None:
@@ -532,7 +532,7 @@ class TestXZCorrections:
         assert not corrections.is_compatible([0, 1, 2, 3, 4, 5])  # Contains outputs
 
         assert nx.utils.graphs_equal(
-            corrections.extract_dag(), nx.DiGraph([(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 5), (2, 4), (3, 5)])
+            corrections.dag(), nx.DiGraph([(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 5), (2, 4), (3, 5)])
         )
 
     # Incomplete corrections
@@ -555,7 +555,7 @@ class TestXZCorrections:
         assert not corrections.is_compatible([0, 0, 1])  # Duplicates
         assert not corrections.is_compatible([1, 0, 2, 3])  # Contains outputs
 
-        assert nx.utils.graphs_equal(corrections.extract_dag(), nx.DiGraph([(1, 0)]))
+        assert nx.utils.graphs_equal(corrections.dag(), nx.DiGraph([(1, 0)]))
 
     # OG without outputs
     def test_order_3(self) -> None:
@@ -576,7 +576,7 @@ class TestXZCorrections:
         assert not corrections.is_compatible([2, 0, 1])  # Wrong order
         assert not corrections.is_compatible([0, 1])  # Incomplete order
         assert corrections.generate_total_measurement_order() in ([0, 1, 2], [0, 2, 1])
-        assert nx.utils.graphs_equal(corrections.extract_dag(), nx.DiGraph([(0, 1), (0, 2)]))
+        assert nx.utils.graphs_equal(corrections.dag(), nx.DiGraph([(0, 1), (0, 2)]))
 
     # Only output nodes
     def test_from_measured_nodes_mapping_0(self) -> None:
