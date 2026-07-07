@@ -335,7 +335,7 @@ class StandardizedPattern(_StandardizedPattern):
         """
         return standardized_to_space_optimal_pattern(self)
 
-    def extract_opengraph(self) -> OpenGraph[Measurement]:
+    def to_opengraph(self) -> OpenGraph[Measurement]:
         r"""Extract the underlying resource-state open graph from the pattern.
 
         Returns
@@ -415,7 +415,7 @@ class StandardizedPattern(_StandardizedPattern):
             return oset, *generations[::-1]
         return generations[::-1]
 
-    def extract_xzcorrections(self) -> XZCorrections[Measurement]:
+    def to_xzcorrections(self) -> XZCorrections[Measurement]:
         r"""Extract the XZ-corrections from the current measurement pattern.
 
         Returns
@@ -443,9 +443,7 @@ class StandardizedPattern(_StandardizedPattern):
         for node, domain in self.z_dict.items():
             _update_corrections(node, domain, z_corr)
 
-        og = (
-            self.extract_opengraph()
-        )  # Raises a `ValueError` if `N` commands in the pattern do not represent a |+⟩ state.
+        og = self.to_opengraph()  # Raises a `ValueError` if `N` commands in the pattern do not represent a |+⟩ state.
 
         return XZCorrections.from_measured_nodes_mapping(
             og, x_corr, z_corr

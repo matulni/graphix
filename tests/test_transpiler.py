@@ -53,8 +53,8 @@ class TestTranspilerUnitGates:
     def test_instruction_flow(self, fx_rng: Generator, instruction: InstructionTestCase) -> None:
         circuit = Circuit(3, instr=[instruction(fx_rng)])
         pattern = circuit.transpile().pattern
-        circuit.transpile_to_causal_flow().flow.check_well_formed()
-        flow = pattern.to_bloch().extract_causal_flow()
+        circuit.transpile_to_causalflow().flow.check_well_formed()
+        flow = pattern.to_bloch().to_causalflow()
         flow.check_well_formed()
 
     @pytest.mark.parametrize("jumps", range(1, 11))
@@ -308,7 +308,7 @@ class TestCircuits:
     def test_instruction_flow(self, fx_rng: Generator, instruction: InstructionTestCase) -> None:
         circuit = Circuit(3, instr=[instruction(fx_rng)])
         pattern = circuit.transpile().pattern
-        flow = pattern.to_bloch().extract_causal_flow()
+        flow = pattern.to_bloch().to_causalflow()
         flow.check_well_formed()
 
     @pytest.mark.parametrize("jumps", range(1, 11))
@@ -393,7 +393,7 @@ def test_transpile_double_cz() -> None:
     circuit = Circuit(2)
     circuit.cz(0, 1)
     circuit.cz(1, 0)
-    cf = circuit.transpile_to_causal_flow()
+    cf = circuit.transpile_to_causalflow()
     assert len(cf.flow.og.graph.edges) == 0
 
 

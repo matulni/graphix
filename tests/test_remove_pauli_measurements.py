@@ -80,7 +80,7 @@ def test_local_complement(fx_rng: Generator, measured_set: AbstractSet[int]) -> 
     remove_pauli_measurements = _RemovePauliMeasurements(cut)
     remove_pauli_measurements.local_complement(0)
     standardized_pattern2 = remove_pauli_measurements.to_standardized_pattern()
-    og2 = standardized_pattern2.extract_opengraph()
+    og2 = standardized_pattern2.to_opengraph()
     expected_graph: Graph = nx.Graph(
         [
             (0, 1),
@@ -91,7 +91,7 @@ def test_local_complement(fx_rng: Generator, measured_set: AbstractSet[int]) -> 
     )
     assert nx.utils.graphs_equal(og2.graph, expected_graph)
     pattern2 = standardized_pattern2.to_pattern()
-    assert pattern2.extract_gflow()
+    assert pattern2.to_gflow()
     check_pattern_equivalence(pattern, pattern2, rng=fx_rng)
 
 
@@ -104,7 +104,7 @@ def test_pivot_edge(fx_rng: Generator, measured_set: AbstractSet[int]) -> None:
     remove_pauli_measurements = _RemovePauliMeasurements(cut)
     remove_pauli_measurements.pivot_edge(0, 1)
     standardized_pattern2 = remove_pauli_measurements.to_standardized_pattern()
-    og2 = standardized_pattern2.extract_opengraph()
+    og2 = standardized_pattern2.to_opengraph()
     expected_graph: Graph = nx.Graph(
         [
             (0, 1),
@@ -127,7 +127,7 @@ def test_pivot_edge(fx_rng: Generator, measured_set: AbstractSet[int]) -> None:
     assert nx.utils.graphs_equal(og2.graph, expected_graph)
     assert og2.output_nodes == tuple(0 if node == 1 else 1 if node == 0 else node for node in og.output_nodes)
     pattern2 = standardized_pattern2.to_pattern()
-    assert pattern2.extract_gflow()
+    assert pattern2.to_gflow()
     check_pattern_equivalence(pattern, pattern2, rng=fx_rng)
 
 
@@ -188,7 +188,7 @@ def check_pattern(pattern: Pattern, rng: Generator) -> None:
     assert all_bloch_measurement_or_input_node(standardized_pattern2.input_nodes, standardized_pattern2.m_list)
 
     # Check that the pattern has a gflow
-    standardized_pattern2.extract_xzcorrections().to_bloch().to_gflow()
+    standardized_pattern2.to_xzcorrections().to_bloch().to_gflow()
 
     pattern2 = standardized_pattern2.to_pattern()
     check_pattern_equivalence(pattern, pattern2, rng=rng)

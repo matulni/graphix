@@ -114,9 +114,9 @@ def test_pattern_pretty_print_random(fx_bg: PCG64, jumps: int, output: OutputFor
 @pytest.mark.parametrize(
     "flow_extractor",
     [
-        lambda og: OpenGraph.extract_causal_flow(og.to_bloch()),
-        lambda og: OpenGraph.extract_gflow(og.to_bloch()),
-        OpenGraph.extract_pauli_flow,
+        lambda og: OpenGraph.to_causalflow(og.to_bloch()),
+        lambda og: OpenGraph.to_gflow(og.to_bloch()),
+        OpenGraph.to_pauliflow,
     ],
 )
 def test_flow_pretty_print_random(
@@ -125,7 +125,7 @@ def test_flow_pretty_print_random(
     flow_extractor: Callable[[OpenGraph[Measurement]], PauliFlow[Measurement]],
 ) -> None:
     rng = Generator(fx_bg.jumped(jumps))
-    rand_og = rand_circuit(5, 5, rng=rng).transpile().pattern.infer_pauli_measurements().extract_opengraph()
+    rand_og = rand_circuit(5, 5, rng=rng).transpile().pattern.infer_pauli_measurements().to_opengraph()
     flow = flow_extractor(rand_og)
 
     flow.to_ascii()
@@ -140,12 +140,7 @@ def test_xzcorr_pretty_print_random(
 ) -> None:
     rng = Generator(fx_bg.jumped(jumps))
     xzcorr = (
-        rand_circuit(5, 5, rng=rng)
-        .transpile()
-        .pattern.extract_opengraph()
-        .to_bloch()
-        .extract_causal_flow()
-        .to_corrections()
+        rand_circuit(5, 5, rng=rng).transpile().pattern.to_opengraph().to_bloch().to_causalflow().to_xzcorrections()
     )
 
     xzcorr.to_ascii()
@@ -168,7 +163,7 @@ def example_og() -> OpenGraph[Measurement]:
 
 
 def test_cflow_str() -> None:
-    flow = example_og().to_bloch().extract_causal_flow()
+    flow = example_og().to_bloch().to_causalflow()
 
     assert str(flow) == "c(3) = {5}, c(4) = {6}, c(1) = {3}, c(2) = {4}; {1, 2} < {3, 4} < {5, 6}"
 
@@ -190,19 +185,19 @@ def test_cflow_str() -> None:
 
 
 def test_gflow_str() -> None:
-    flow = example_og().to_bloch().extract_gflow()
+    flow = example_og().to_bloch().to_gflow()
 
     assert str(flow) == "g(1) = {3, 6}, g(2) = {4, 5}, g(3) = {5}, g(4) = {6}; {1, 2} < {3, 4} < {5, 6}"
 
 
 def test_pflow_str() -> None:
-    flow = example_og().extract_pauli_flow()
+    flow = example_og().to_pauliflow()
 
     assert str(flow) == "p(1) = {3, 6}, p(2) = {4, 5}, p(3) = {5}, p(4) = {6}; {1, 2} < {3, 4} < {5, 6}"
 
 
 def test_xzcorr_str() -> None:
-    flow = example_og().to_bloch().extract_causal_flow().to_corrections()
+    flow = example_og().to_bloch().to_causalflow().to_xzcorrections()
 
     assert (
         str(flow)

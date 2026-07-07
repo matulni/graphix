@@ -1037,7 +1037,7 @@ class Pattern:
         """
         return optimization.StandardizedPattern.from_pattern(self).extract_partial_order_layers()
 
-    def extract_causal_flow(self) -> CausalFlow[BlochMeasurement]:
+    def to_causalflow(self) -> CausalFlow[BlochMeasurement]:
         r"""Extract the causal flow structure from the current measurement pattern.
 
         This method does not call the flow-extraction routine on the underlying open graph, but constructs the flow from the pattern corrections instead.
@@ -1059,12 +1059,12 @@ class Pattern:
 
         Notes
         -----
-        - Applying the chain ``Pattern.extract_causal_flow().to_corrections().to_pattern()`` to a strongly deterministic pattern returns a new pattern implementing the same unitary transformation. This equivalence holds as long as the original pattern contains no Clifford commands, since those are discarded during open-graph extraction.
+        - Applying the chain ``Pattern.to_causalflow().to_xzcorrections().to_pattern()`` to a strongly deterministic pattern returns a new pattern implementing the same unitary transformation. This equivalence holds as long as the original pattern contains no Clifford commands, since those are discarded during open-graph extraction.
         - This method requires that all the measurements in the pattern are represented as Bloch measurements (i.e., there are no :class:`PauliMeasurement`s). Use :meth:`to_bloch()` to convert all Pauli measurements.
         """
-        return self.extract_xzcorrections().downcast_bloch().to_causal_flow()
+        return self.to_xzcorrections().downcast_bloch().to_causalflow()
 
-    def extract_gflow(self) -> GFlow[BlochMeasurement]:
+    def to_gflow(self) -> GFlow[BlochMeasurement]:
         r"""Extract the generalized flow (gflow) structure from the current measurement pattern.
 
         This method does not call the flow-extraction routine on the underlying open graph, but constructs the gflow from the pattern corrections instead.
@@ -1084,17 +1084,17 @@ class Pattern:
 
         Notes
         -----
-        The notes provided in :func:`self.extract_causal_flow` apply here as well.
+        The notes provided in :func:`self.to_causalflow` apply here as well.
         """
-        return self.extract_xzcorrections().downcast_bloch().to_gflow()
+        return self.to_xzcorrections().downcast_bloch().to_gflow()
 
-    def extract_pauli_flow(self) -> PauliFlow[Measurement]:
+    def to_pauliflow(self) -> PauliFlow[Measurement]:
         r"""Extract the Pauli flow structure from the current measurement pattern.
 
         This method does not call the flow-extraction routine on the underlying open graph, but
         reconstructs the Pauli flow from the pattern corrections instead (see
-        :meth:`graphix.flow.core.XZCorrections.to_pauli_flow`). Contrary to
-        :meth:`extract_causal_flow` and :meth:`extract_gflow`, Pauli measurements are kept as
+        :meth:`graphix.flow.core.XZCorrections.to_pauliflow`). Contrary to
+        :meth:`to_causalflow` and :meth:`to_gflow`, Pauli measurements are kept as
         axes rather than downcast to planar Bloch measurements, so that the Pauli-basis
         structure is preserved.
 
@@ -1113,11 +1113,11 @@ class Pattern:
 
         Notes
         -----
-        The notes provided in :func:`self.extract_causal_flow` apply here as well.
+        The notes provided in :func:`self.to_causalflow` apply here as well.
         """
-        return self.extract_xzcorrections().to_pauli_flow()
+        return self.to_xzcorrections().to_pauliflow()
 
-    def extract_xzcorrections(self) -> XZCorrections[Measurement]:
+    def to_xzcorrections(self) -> XZCorrections[Measurement]:
         """Extract the XZ-corrections from the current measurement pattern.
 
         Returns
@@ -1134,11 +1134,11 @@ class Pattern:
 
         Notes
         -----
-        To ensure that applying the chain ``Pattern.extract_xzcorrections().to_pattern()`` to a strongly deterministic pattern returns a new pattern implementing the same unitary transformation, XZ-corrections must be extracted from a standardized pattern. This requirement arises for the same reason that flow extraction also operates correctly on standardized patterns only.
+        To ensure that applying the chain ``Pattern.to_xzcorrections().to_pattern()`` to a strongly deterministic pattern returns a new pattern implementing the same unitary transformation, XZ-corrections must be extracted from a standardized pattern. This requirement arises for the same reason that flow extraction also operates correctly on standardized patterns only.
         This equivalence holds as long as the original pattern contains no Clifford commands, since those are discarded during open-graph extraction.
-        See docstring in :func:`optimization.StandardizedPattern.extract_gflow` for additional information.
+        See docstring in :func:`optimization.StandardizedPattern.to_gflow` for additional information.
         """
-        return optimization.StandardizedPattern.from_pattern(self).extract_xzcorrections()
+        return optimization.StandardizedPattern.from_pattern(self).to_xzcorrections()
 
     def _measurement_order_depth(self) -> list[int]:
         """Obtain a measurement order which reduces the depth of a pattern.
@@ -1233,7 +1233,7 @@ class Pattern:
         graph = self.extract_graph()
         return {node for node, d in graph.degree if d == 0}
 
-    def extract_opengraph(self) -> OpenGraph[Measurement]:
+    def to_opengraph(self) -> OpenGraph[Measurement]:
         r"""Extract the underlying resource-state open graph from the pattern.
 
         This method standardizes the pattern first to guarantee that
@@ -1245,7 +1245,7 @@ class Pattern:
         -------
         OpenGraph[Measurement]
         """
-        return optimization.StandardizedPattern.from_pattern(self).extract_opengraph()
+        return optimization.StandardizedPattern.from_pattern(self).to_opengraph()
 
     def extract_clifford(self) -> dict[int, Clifford]:
         """Extract Clifford commands.
@@ -1542,7 +1542,7 @@ class Pattern:
         If ``flow_from_pattern==True`` but the pattern is not compatible with a gflow, an attempt to be extract the flow from the underlying open graph will be made while warning the user.
         """
         if annotations is None:
-            og = self.extract_opengraph()
+            og = self.to_opengraph()
             gv = GraphVisualizer.from_opengraph(og=og, **options)
         else:
             match annotations:
@@ -1551,12 +1551,12 @@ class Pattern:
 
                     if flow_from_pattern:
                         try:
-                            xz_corrections = self.extract_xzcorrections().downcast_bloch()
+                            xz_corrections = self.to_xzcorrections().downcast_bloch()
                         except TypeError:
                             pass
                         else:
                             try:
-                                flow = xz_corrections.to_causal_flow()
+                                flow = xz_corrections.to_causalflow()
                             except FlowError:
                                 try:
                                     flow = xz_corrections.to_gflow()
@@ -1567,15 +1567,15 @@ class Pattern:
                                     )
 
                     if flow is None:
-                        og = self.extract_opengraph()
+                        og = self.to_opengraph()
                         try:
                             bloch_case = og.downcast_bloch()
                         except TypeError:
                             pass
                         else:
-                            flow = bloch_case.find_causal_flow()
+                            flow = bloch_case.to_causalflow_or_none()
                         if flow is None:
-                            flow = og.find_pauli_flow(stacklevel=stacklevel + 1)
+                            flow = og.to_pauliflow_or_none(stacklevel=stacklevel + 1)
                         if flow is None:
                             raise PatternError(
                                 "The pattern's open graph does not have Pauli flow. Consider setting the `annotations` parameter to `None` or `DrawPatternAnnotations.XZCorrections`."
@@ -1584,7 +1584,7 @@ class Pattern:
                     gv = GraphVisualizer.from_flow(flow=flow, **options)
 
                 case DrawPatternAnnotations.XZCorrections:
-                    xzcorrections = self.extract_xzcorrections()
+                    xzcorrections = self.to_xzcorrections()
                     gv = GraphVisualizer.from_xzcorrections(xz_corr=xzcorrections, **options)
 
         gv.visualize()

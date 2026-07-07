@@ -54,11 +54,11 @@ Pattern Manipulation
 
     .. automethod:: extract_nodes
 
-    .. automethod:: extract_causal_flow
+    .. automethod:: to_causalflow
 
-    .. automethod:: extract_gflow
+    .. automethod:: to_gflow
 
-    .. automethod:: extract_opengraph
+    .. automethod:: to_opengraph
 
     .. automethod:: extract_measurement_commands
 

@@ -192,7 +192,7 @@ class SpaceMinimizationHeuristics:
         This minimization heuristic is optimal but requires the pattern to have a causal flow.
         """
         try:
-            cf = pattern.extract_xzcorrections().downcast_bloch().to_causal_flow()
+            cf = pattern.to_xzcorrections().downcast_bloch().to_causalflow()
         except (TypeError, FlowError):
             return None
         else:

@@ -391,10 +391,10 @@ class TestFlowPatternConversion:
     """
 
     @pytest.mark.parametrize("test_case", prepare_test_xzcorrections())
-    def test_flow_to_corrections(self, test_case: XZCorrectionsTestCase) -> None:
+    def test_flow_to_xzcorrections(self, test_case: XZCorrectionsTestCase) -> None:
         flow = test_case.flow
         flow.check_well_formed()
-        corrections = flow.to_corrections()
+        corrections = flow.to_xzcorrections()
         corrections.check_well_formed()
         assert corrections.z_corrections == test_case.z_corr
         assert corrections.x_corrections == test_case.x_corr
@@ -402,7 +402,7 @@ class TestFlowPatternConversion:
     @pytest.mark.parametrize("test_case", prepare_test_xzcorrections())
     def test_corrections_to_pattern(self, test_case: XZCorrectionsTestCase, fx_rng: Generator) -> None:
         if test_case.pattern is not None:
-            pattern = test_case.flow.to_corrections().to_pattern()  # type: ignore[misc]
+            pattern = test_case.flow.to_xzcorrections().to_pattern()  # type: ignore[misc]
             n_shots = 2
 
             for plane in {Plane.XY, Plane.XZ, Plane.YZ}:
@@ -427,7 +427,7 @@ class TestFlow:
             output_nodes=[1],
             measurements={0: Measurement.XY(alpha)},
         )
-        flow = og.extract_pauli_flow()
+        flow = og.to_pauliflow()
 
         og_ref = OpenGraph(
             graph=nx.Graph([(0, 1)]),
@@ -435,7 +435,7 @@ class TestFlow:
             output_nodes=[1],
             measurements={0: Measurement.XY(value)},
         )
-        flow_ref = og_ref.extract_pauli_flow()
+        flow_ref = og_ref.to_pauliflow()
 
         flow_test = flow.subs(alpha, value)
 
@@ -455,7 +455,7 @@ class TestFlow:
             output_nodes=[2],
             measurements={node: Measurement.XY(angle) for node, angle in enumerate(parametric_angles)},
         )
-        flow = og.extract_pauli_flow()
+        flow = og.to_pauliflow()
 
         og_ref = OpenGraph(
             graph=nx.Graph([(0, 1), (1, 2)]),
@@ -463,7 +463,7 @@ class TestFlow:
             output_nodes=[2],
             measurements={node: Measurement.XY(value) for node in range(2)},
         )
-        flow_ref = og_ref.extract_pauli_flow()
+        flow_ref = og_ref.to_pauliflow()
 
         flow_test = flow.xreplace(dict.fromkeys(parametric_angles, value))
 
@@ -498,7 +498,7 @@ class TestXZCorrections:
 
     # See `:func: generate_causal_flow_0`
     def test_order_0(self) -> None:
-        corrections = generate_causal_flow_0().to_corrections()
+        corrections = generate_causal_flow_0().to_xzcorrections()
 
         assert corrections.generate_total_measurement_order() == [0, 1, 2]
         assert corrections.is_compatible([0, 1, 2])  # Correct order
@@ -706,7 +706,7 @@ class TestXZCorrections:
             output_nodes=[1],
             measurements={0: Measurement.XY(alpha)},
         )
-        xzcorr = og.extract_causal_flow().to_corrections()
+        xzcorr = og.to_causalflow().to_xzcorrections()
 
         og_ref = OpenGraph(
             graph=nx.Graph([(0, 1)]),
@@ -714,7 +714,7 @@ class TestXZCorrections:
             output_nodes=[1],
             measurements={0: Measurement.XY(value)},
         )
-        xzcorr_ref = og_ref.extract_causal_flow().to_corrections()
+        xzcorr_ref = og_ref.to_causalflow().to_xzcorrections()
 
         xzcorr_test = xzcorr.subs(alpha, value)
 
@@ -735,7 +735,7 @@ class TestXZCorrections:
             output_nodes=[2],
             measurements={node: Measurement.XY(angle) for node, angle in enumerate(parametric_angles)},
         )
-        xzcorr = og.extract_causal_flow().to_corrections()
+        xzcorr = og.to_causalflow().to_xzcorrections()
 
         og_ref = OpenGraph(
             graph=nx.Graph([(0, 1), (1, 2)]),
@@ -743,7 +743,7 @@ class TestXZCorrections:
             output_nodes=[2],
             measurements={node: Measurement.XY(value) for node in range(2)},
         )
-        xzcorr_ref = og_ref.extract_causal_flow().to_corrections()
+        xzcorr_ref = og_ref.to_causalflow().to_xzcorrections()
 
         xzcorr_test = xzcorr.xreplace(dict.fromkeys(parametric_angles, value))
 
