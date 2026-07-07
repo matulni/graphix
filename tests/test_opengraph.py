@@ -586,6 +586,56 @@ def _og_20() -> OpenGraphFlowTestCase:
     return OpenGraphFlowTestCase(og, has_cflow=False, has_gflow=True, has_pflow=True)
 
 
+@register_open_graph_flow_test_case
+def _og_21() -> OpenGraphFlowTestCase:
+    r"""Generate empty open graph.
+
+    Notes
+    -----
+    This opengraph triggered issue #531.
+    https://github.com/TeamGraphix/graphix/issues/531
+    """
+    og: OpenGraph[Measurement] = OpenGraph(graph=nx.Graph(), input_nodes=[], output_nodes=[], measurements={})
+    return OpenGraphFlowTestCase(og, has_cflow=True, has_gflow=True, has_pflow=True)
+
+
+@register_open_graph_flow_test_case
+def _og_22() -> OpenGraphFlowTestCase:
+    r"""Generate open graph without outputs or inputs.
+
+    Structure:
+
+    [(0)]-[(1)]-[(2)]
+      |___________|
+
+    Notes
+    -----
+    This opengraph was discussed in issue #531.
+    https://github.com/TeamGraphix/graphix/issues/531#issuecomment-4797042493
+    """
+    og = OpenGraph(nx.complete_graph(3), (), (), dict.fromkeys(range(3), Measurement.Z))
+    return OpenGraphFlowTestCase(og, has_cflow=False, has_gflow=False, has_pflow=True)
+
+
+@register_open_graph_flow_test_case
+def _og_23() -> OpenGraphFlowTestCase:
+    r"""Generate open graph without outputs or inputs.
+
+    Structure:
+
+    [(0)]
+
+    [(1)]
+
+    Notes
+    -----
+    This opengraph was discussed in issue #531.
+    https://github.com/TeamGraphix/graphix/issues/531#issuecomment-4797042493
+    """
+    og = OpenGraph(nx.empty_graph(2), (), (), {0: Measurement.YZ(0.3), 1: Measurement.YZ(0.25)})
+    return OpenGraphFlowTestCase(og, has_cflow=False, has_gflow=True, has_pflow=True)
+
+
 class OpenGraphComposeTestCase(NamedTuple):
     og1: OpenGraph[AbstractMeasurement]
     og2: OpenGraph[AbstractMeasurement]
@@ -1041,7 +1091,9 @@ class TestOpenGraph:
         if test_case.has_cflow:
             cf = og.to_causalflow()
             cf.check_well_formed()
-            pattern = cf.to_xzcorrections().to_pattern()
+            xz = cf.to_xzcorrections()
+            xz.check_well_formed()
+            pattern = xz.to_pattern()
             assert check_determinism(pattern, fx_rng)
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a causal flow."):
@@ -1054,7 +1106,9 @@ class TestOpenGraph:
         if test_case.has_gflow:
             gf = og.to_gflow()
             gf.check_well_formed()
-            pattern = gf.to_xzcorrections().to_pattern()
+            xz = gf.to_xzcorrections()
+            xz.check_well_formed()
+            pattern = xz.to_pattern()
             assert check_determinism(pattern, fx_rng)
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a gflow."):
@@ -1067,7 +1121,9 @@ class TestOpenGraph:
         if test_case.has_pflow:
             pf = og.infer_pauli_measurements().to_pauliflow()
             pf.check_well_formed()
-            pattern = pf.to_xzcorrections().to_pattern()
+            xz = pf.to_xzcorrections()
+            xz.check_well_formed()
+            pattern = xz.to_pattern()
             assert check_determinism(pattern, fx_rng)
         else:
             with pytest.raises(OpenGraphError, match=r"The open graph does not have a Pauli flow."):

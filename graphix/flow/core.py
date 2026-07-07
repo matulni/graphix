@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 from collections import defaultdict
 from collections.abc import Sequence
-from copy import copy
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Generic, TypeVar
@@ -13,7 +12,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 import networkx as nx
 import numpy as np
 
-# `override` introduced in Python 3.12, `assert_never` introduced in Python 3.11
+# ``override`` introduced in Python 3.12, ``assert_never`` introduced in Python 3.11
 from typing_extensions import assert_never, override
 
 from graphix._linalg import MatGF2, solve_f2_linear_system
@@ -83,15 +82,15 @@ class XZCorrections(Generic[_AM_co]):
     og : OpenGraph[_AM_co]
         The open graph with respect to which the XZ-corrections are defined.
     x_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of X-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an X-correction must be applied depending on the measurement result of `key`.
+        Mapping of X-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an X-correction must be applied depending on the measurement result of ``key``.
     z_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of Z-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an Z-correction must be applied depending on the measurement result of `key`.
+        Mapping of Z-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an Z-correction must be applied depending on the measurement result of ``key``.
     partial_order_layers : Sequence[AbstractSet[int]]
-        Partial order between the open graph's nodes in a layer form determined by the corrections. The set `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`. If the open graph has output nodes, they are always in layer 0. Non-corrected, measured nodes are always in the last layer.
+        Partial order between the open graph's nodes in a layer form determined by the corrections. The set ``layers[i]`` comprises the nodes in layer ``i``. Nodes in layer ``i`` are "larger" in the partial order than nodes in layer ``i+1``. If the open graph has output nodes, they are always in layer 0. Non-corrected, measured nodes are always in the last layer.
 
     Notes
     -----
-    The XZ-corrections mappings define a partial order, therefore, only `og`, `x_corrections` and `z_corrections` are necessary to initialize an `XZCorrections` instance (see :func:`XZCorrections.from_measured_nodes_mapping`). However, XZ-corrections are often extracted from a flow whose partial order is known and can be used to construct a pattern, so it can also be passed as an argument to the `dataclass` constructor. The correctness of the input parameters is not verified automatically.
+    The XZ-corrections mappings define a partial order, therefore, only ``og``, ``x_corrections`` and ``z_corrections`` are necessary to initialize an ``XZCorrections`` instance (see :func:`XZCorrections.from_measured_nodes_mapping`). However, XZ-corrections are often extracted from a flow whose partial order is known and can be used to construct a pattern, so it can also be passed as an argument to the ``dataclass`` constructor. The correctness of the input parameters is not verified automatically.
     """
 
     og: OpenGraph[_AM_co]
@@ -105,16 +104,16 @@ class XZCorrections(Generic[_AM_co]):
         x_corrections: Mapping[int, AbstractSet[int]] | None = None,
         z_corrections: Mapping[int, AbstractSet[int]] | None = None,
     ) -> XZCorrections[_AM_co]:
-        """Create an `XZCorrections` instance from the XZ-corrections mappings.
+        """Create an ``XZCorrections`` instance from the XZ-corrections mappings.
 
         Parameters
         ----------
         og : OpenGraph[_AM_co]
             Open graph with respect to which the corrections are defined.
         x_corrections : Mapping[int, AbstractSet[int]] | None
-            Mapping of X-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an X-correction must be applied depending on the measurement result of `key`.
+            Mapping of X-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an X-correction must be applied depending on the measurement result of ``key``.
         z_corrections : Mapping[int, AbstractSet[int]] | None
-            Mapping of X-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an X-correction must be applied depending on the measurement result of `key`.
+            Mapping of X-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an X-correction must be applied depending on the measurement result of ``key``.
 
         Returns
         -------
@@ -142,7 +141,7 @@ class XZCorrections(Generic[_AM_co]):
 
         partial_order_layers = _corrections_to_partial_order_layers(
             og, x_corrections, z_corrections
-        )  # Raises an `XZCorrectionsError` if mappings are not well formed.
+        )  # Raises an ``XZCorrectionsError`` if mappings are not well formed.
 
         return XZCorrections(og, x_corrections, z_corrections, partial_order_layers)
 
@@ -150,13 +149,13 @@ class XZCorrections(Generic[_AM_co]):
         self: XZCorrections[Measurement],
         total_measurement_order: TotalOrder | None = None,
     ) -> Pattern:
-        """Generate a unique pattern from an instance of `XZCorrections[Measurement]`.
+        """Generate a unique pattern from an instance of ``XZCorrections[Measurement]``.
 
         Parameters
         ----------
         total_measurement_order : TotalOrder | None
             Ordered sequence of all the non-output nodes in the open graph indicating the measurement order. This parameter must be compatible with the partial order induced by the XZ-corrections.
-            Optional, defaults to `None`. If `None` an arbitrary total order compatible with `self.partial_order_layers` is generated.
+            Optional, defaults to ``None``. If ``None`` an arbitrary total order compatible with ``self.partial_order_layers`` is generated.
 
         Returns
         -------
@@ -169,9 +168,9 @@ class XZCorrections(Generic[_AM_co]):
 
         Notes
         -----
-        - The `XZCorrections` instance must be of parametric type `Measurement` to allow for a pattern extraction, otherwise the underlying open graph does not contain information about the measurement angles.
+        - The ``XZCorrections`` instance must be of parametric type ``Measurement`` to allow for a pattern extraction, otherwise the underlying open graph does not contain information about the measurement angles.
 
-        - The resulting pattern is guaranteed to be runnable if the `XZCorrections` object is well formed, but does not need to be deterministic. It will be deterministic if the XZ-corrections were inferred from a flow. In this case, this routine follows the recipe in Theorems 1, 2 and 4 in Ref. [1].
+        - The resulting pattern is guaranteed to be runnable if the ``XZCorrections`` object is well formed, but does not need to be deterministic. It will be deterministic if the XZ-corrections were inferred from a flow. In this case, this routine follows the recipe in Theorems 1, 2 and 4 in Ref. [1].
 
         References
         ----------
@@ -230,7 +229,7 @@ class XZCorrections(Generic[_AM_co]):
         [1] Browne et al., 2007 New J. Phys. 9 250 (arXiv:quant-ph/0702212).
         """
         cf = CausalFlow(self.og, self.x_corrections, self.partial_order_layers)
-        cf.check_well_formed()  # Raises a `FlowError` if the partial order and the correction function are not compatible, if a measured node is corrected by more than one node, or if nodes are not measured on the XY plane.
+        cf.check_well_formed()  # Raises a ``FlowError`` if the partial order and the correction function are not compatible, if a measured node is corrected by more than one node, or if nodes are not measured on the XY plane.
         return cf
 
     def to_gflow(self: XZCorrections[_PM_co]) -> GFlow[_PM_co]:
@@ -265,7 +264,7 @@ class XZCorrections(Generic[_AM_co]):
             correction_function[i] = corrections
 
         gf = GFlow(self.og, correction_function, self.partial_order_layers)
-        gf.check_well_formed()  # Raises a `FlowError` if the partial order and the correction function are not compatible.
+        gf.check_well_formed()  # Raises a ``FlowError`` if the partial order and the correction function are not compatible.
         return gf
 
     def to_pauliflow(self) -> PauliFlow[_AM_co]:
@@ -314,12 +313,12 @@ class XZCorrections(Generic[_AM_co]):
         """
         correction_function = _reconstruct_pauli_correction_function(self)
         pf: PauliFlow[_AM_co] = PauliFlow(self.og, correction_function, self.partial_order_layers)
-        # By construction the GF(2) equations of `_reconstruct_pauli_correction_function` encode
+        # By construction the GF(2) equations of ``_reconstruct_pauli_correction_function`` encode
         # propositions P2-P9 exactly, the anachronical candidates are restricted to X/Y axes which
         # guarantees P1, and the general flow properties hold (the correction function is defined on
         # the measured nodes and its image is included in the non-input nodes). The well-formedness
         # is therefore not re-checked here in production; it is exercised in the test-suite instead
-        # (see `tests/test_pauli_flow_extraction.py`).
+        # (see ``tests/test_pauli_flow_extraction.py``).
         return pf
 
     def to_bloch(self: XZCorrections[Measurement]) -> XZCorrections[BlochMeasurement]:
@@ -330,7 +329,7 @@ class XZCorrections(Generic[_AM_co]):
         return XZCorrections(self.og.to_bloch(), self.x_corrections, self.z_corrections, self.partial_order_layers)
 
     def downcast_bloch(self: XZCorrections[Measurement]) -> XZCorrections[BlochMeasurement]:
-        """Return the open graph if all measurements are described as Bloch measurements; raise `TypeError` otherwise.
+        """Return the open graph if all measurements are described as Bloch measurements; raise ``TypeError`` otherwise.
 
         See :meth:`OpenGraph.downcast_bloch` for additional information.
         """
@@ -357,12 +356,12 @@ class XZCorrections(Generic[_AM_co]):
         Returns
         -------
         nx.DiGraph[int]
-            Directed graph in which an edge `i -> j` represents a correction applied to qubit `j`, conditioned on the measurement outcome of qubit `i`.
+            Directed graph in which an edge ``i -> j`` represents a correction applied to qubit ``j``, conditioned on the measurement outcome of qubit ``i``.
 
         Notes
         -----
         - Not all nodes of the underlying open graph are nodes of the returned directed graph, but only those involved in a correction, either as corrected qubits or belonging to a correction domain.
-        - The output of this method is not guaranteed to be a directed acyclical graph (i.e., a directed graph without any loops). This is only the case if the `XZCorrections` object is well formed, which is verified by the method :func:`XZCorrections.is_wellformed`.
+        - The output of this method is not guaranteed to be a directed acyclical graph (i.e., a directed graph without any loops). This is only the case if the ``XZCorrections`` object is well formed, which is verified by the method :func:`XZCorrections.is_wellformed`.
         """
         return _corrections_to_dag(self.x_corrections, self.z_corrections)
 
@@ -377,7 +376,7 @@ class XZCorrections(Generic[_AM_co]):
         Returns
         -------
         bool
-            `True` if `total_measurement_order` is compatible with `self.partial_order_layers`, `False` otherwise.
+            ``True`` if ``total_measurement_order`` is compatible with ``self.partial_order_layers``, ``False`` otherwise.
         """
         non_outputs_set = set(self.og.graph.nodes) - set(self.og.output_nodes)
 
@@ -415,7 +414,7 @@ class XZCorrections(Generic[_AM_co]):
 
         Notes
         -----
-        A correct `XZCorrections` instance verifies the following properties:
+        A correct ``XZCorrections`` instance verifies the following properties:
             - Keys of the correction dictionaries are measured nodes, i.e., a subset of :math:`O^c`.
             - Corrections respect the partial order.
             - The first layer of the partial order contains all the output nodes if there are any.
@@ -447,7 +446,7 @@ class XZCorrections(Generic[_AM_co]):
         measured_layers = reversed(self.partial_order_layers[shift:])
         layer_idx = (
             len(self.partial_order_layers) - 1
-        )  # To keep track of the layer index when iterating `self.partial_order_layers` in reverse order.
+        )  # To keep track of the layer index when iterating ``self.partial_order_layers`` in reverse order.
         past_and_present_nodes: set[int] = set()
 
         for layer in measured_layers:
@@ -527,7 +526,7 @@ class XZCorrections(Generic[_AM_co]):
         variable : Parameter
             The symbolic expression to be replaced within the measurement angles.
         substitute : ExpressionOrSupportsFloat
-            The value or symbolic expression to substitute in place of `variable`.
+            The value or symbolic expression to substitute in place of ``variable``.
 
         Returns
         -------
@@ -549,7 +548,7 @@ class XZCorrections(Generic[_AM_co]):
         Parameters
         ----------
         assignment : Mapping[Parameter, ExpressionOrSupportsFloat]
-            A dictionary-like mapping where keys are the `Parameter` objects to be replaced and values are the new expressions or numerical values.
+            A dictionary-like mapping where keys are the ``Parameter`` objects to be replaced and values are the new expressions or numerical values.
 
         Returns
         -------
@@ -573,17 +572,21 @@ class PauliFlow(Generic[_AM_co]):
     og : OpenGraph[_AM_co]
         The open graph with respect to which the Pauli flow is defined.
     correction_function : Mapping[int, AbstractSet[int]
-        Pauli flow correction function. `correction_function[i]` is the set of qubits correcting the measurement of qubit `i`.
+        Pauli flow correction function. ``correction_function[i]`` is the set of qubits correcting the measurement of qubit ``i``.
     partial_order_layers : Sequence[AbstractSet[int]]
-        Partial order between the open graph's nodes in a layer form. The set `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`. Output nodes are always in layer 0.
+        Partial order between the open graph's nodes in a layer form. The set ``layers[i]`` comprises the nodes in layer ``i``. Nodes in layer ``i`` are "larger" in the partial order than nodes in layer ``i+1``. Output nodes are always in layer 0 if there are any.
 
     Notes
     -----
     - See Definition 5 in Ref. [1] for a definition of Pauli flow.
 
+    <<<<<<< HEAD
     - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only `og` and `correction_function` are necessary to initialize an `PauliFlow` instance (see :func:`PauliFlow.from_correction_matrix_or_none`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
 
     - A correct flow can only exist on an open graph with output nodes, so `layers[0]` always contains a finite set of nodes.
+    =======
+    - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only ``og`` and ``correction_function`` are necessary to initialize an ``PauliFlow`` instance (see :func:`PauliFlow.try_from_correction_matrix`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
+    >>>>>>> master
 
     References
     ----------
@@ -599,7 +602,7 @@ class PauliFlow(Generic[_AM_co]):
 
     @classmethod
     def from_correction_matrix_or_none(cls, correction_matrix: CorrectionMatrix[_AM_co]) -> Self | None:
-        """Initialize a `PauliFlow` object from a matrix encoding a correction function.
+        """Initialize a ``PauliFlow`` object from a matrix encoding a correction function.
 
         Parameters
         ----------
@@ -609,7 +612,7 @@ class PauliFlow(Generic[_AM_co]):
         Returns
         -------
         Self | None
-            A Pauli flow if it exists, `None` otherwise.
+            A Pauli flow if it exists, ``None`` otherwise.
 
         Notes
         -----
@@ -627,7 +630,7 @@ class PauliFlow(Generic[_AM_co]):
         return cls(correction_matrix.aog.og, correction_function, partial_order_layers)
 
     def to_xzcorrections(self) -> XZCorrections[_AM_co]:
-        """Compute the X and Z corrections induced by the Pauli flow encoded in `self`.
+        """Compute the X and Z corrections induced by the Pauli flow encoded in ``self``.
 
         Returns
         -------
@@ -641,13 +644,14 @@ class PauliFlow(Generic[_AM_co]):
         ----------
         [1] Browne et al., 2007 New J. Phys. 9 250 (arXiv:quant-ph/0702212).
         """
-        future = copy(self.partial_order_layers[0])  # Sets are mutable
         x_corrections: dict[int, AbstractSet[int]] = {}  # {domain: nodes}
         z_corrections: dict[int, AbstractSet[int]] = {}  # {domain: nodes}
 
-        for layer in self.partial_order_layers[1:]:
+        future: set[int] = set()
+        for layer in self.partial_order_layers:
             for measured_node in layer:
-                correcting_set = self.correction_function[measured_node]
+                # First layer in ``self.partial_order_layers`` may contain output nodes which are not in ``correction_function`` keys.
+                correcting_set = self.correction_function.get(measured_node, set())
                 # Conditionals avoid storing empty correction sets
                 if x_corrected_nodes := correcting_set & future:
                     x_corrections[measured_node] = frozenset(x_corrected_nodes)
@@ -661,7 +665,7 @@ class PauliFlow(Generic[_AM_co]):
     def is_well_formed(self) -> bool:
         """Verify if flow is well formed.
 
-        This method is a wrapper over :func:`self.check_well_formed` catching the `FlowError` exceptions.
+        This method is a wrapper over :func:`self.check_well_formed`` catching the ``FlowError` exceptions.
 
         Returns
         -------
@@ -687,7 +691,7 @@ class PauliFlow(Generic[_AM_co]):
             - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
             - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
             - The nodes in the partial order are the nodes in the open graph.
-            - The first layer of the partial order layers is :math:`O`, the output nodes of the open graph. This is guaranteed because open graphs without outputs do not have flow.
+            - The first layer of the partial order layers contains the outputs of the open graph if there are any.
 
         Specific properties of Pauli flows:
             - If :math:`j \in p(i), i \neq j, \lambda(j) \notin \{X, Y\}`, then :math:`i \prec j` (P1).
@@ -716,8 +720,9 @@ class PauliFlow(Generic[_AM_co]):
         past_and_present_nodes: set[int] = set()
         past_and_present_nodes_y_meas: set[int] = set()
 
+        shift = 1 if o_set else 0
         layer_idx = len(self.partial_order_layers) - 1
-        for layer in reversed(self.partial_order_layers[1:]):
+        for layer in reversed(self.partial_order_layers[shift:]):
             if not oc_set.issuperset(layer) or not layer or layer & past_and_present_nodes:
                 raise PartialOrderLayerError(PartialOrderLayerErrorReason.NthLayer, layer_index=layer_idx, layer=layer)
 
@@ -802,7 +807,7 @@ class PauliFlow(Generic[_AM_co]):
     def node_measurement_label(self, node: int) -> Plane | Axis:
         """Get the measurement label of a given node in the open graph.
 
-        This method interprets measurements with a Pauli angle as `Axis` instances, in consistence with the Pauli flow extraction routine.
+        This method interprets measurements with a Pauli angle as ``Axis`` instances, in consistence with the Pauli flow extraction routine.
 
         Parameters
         ----------
@@ -859,7 +864,7 @@ class PauliFlow(Generic[_AM_co]):
         gv = GraphVisualizer.from_flow(flow=self, **options)
         gv.visualize()
 
-    def subs(  # noqa: PYI019 Annotating with `Self` is not possible since `self` must be of parametric type `Measurement`.
+    def subs(  # noqa: PYI019 Annotating with ``Self`` is not possible since ``self`` must be of parametric type ``Measurement``.
         self: _T_PauliFlowMeasurement, variable: Parameter, substitute: ExpressionOrSupportsFloat
     ) -> _T_PauliFlowMeasurement:
         """Substitute a parameter with a value or expression in all measurement angles of the open graph.
@@ -869,7 +874,7 @@ class PauliFlow(Generic[_AM_co]):
         variable : Parameter
             The symbolic expression to be replaced within the measurement angles.
         substitute : ExpressionOrSupportsFloat
-            The value or symbolic expression to substitute in place of `variable`.
+            The value or symbolic expression to substitute in place of ``variable``.
 
         Returns
         -------
@@ -891,7 +896,7 @@ class PauliFlow(Generic[_AM_co]):
         Parameters
         ----------
         assignment : Mapping[Parameter, ExpressionOrSupportsFloat]
-            A dictionary-like mapping where keys are the `Parameter` objects to be replaced and values are the new expressions or numerical values.
+            A dictionary-like mapping where keys are the ``Parameter`` objects to be replaced and values are the new expressions or numerical values.
 
         Returns
         -------
@@ -945,7 +950,7 @@ class PauliFlow(Generic[_AM_co]):
         Returns
         -------
         dict[int, PauliString]
-            A dictionary where the keys are node indices (from the correction function) and the values are the computed `PauliString` objects.
+            A dictionary where the keys are node indices (from the correction function) and the values are the computed ``PauliString`` objects.
 
         Raises
         ------
@@ -955,7 +960,7 @@ class PauliFlow(Generic[_AM_co]):
         Notes
         -----
         This property is cached; the dictionary is computed only once upon the first access and stored for subsequent calls.
-        See notes in `PauliString.from_measured_node` for additional information.
+        See notes in ``PauliString.from_measured_node`` for additional information.
         """
         if not self.is_focused():
             raise ValueError("Flow is not focused.")
@@ -992,10 +997,10 @@ class PauliFlow(Generic[_AM_co]):
 
 @dataclass(frozen=True)
 class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
-    """An unmutable subclass of `PauliFlow` providing a representation of a generalised flow (gflow).
+    """An unmutable subclass of ``PauliFlow`` providing a representation of a generalised flow (gflow).
 
     This class differs from its parent class in the following:
-        - It cannot be constructed from `OpenGraph[Axis]` instances, since the gflow is only defined for planar measurements.
+        - It cannot be constructed from ``OpenGraph[Axis]`` instances, since the gflow is only defined for planar measurements.
         - The extraction of XZ-corrections from the gflow does not require knowledge on the partial order.
         - The method :func:`GFlow.is_well_formed` verifies the definition of gflow (Definition 2.36 in Ref. [1]).
 
@@ -1010,7 +1015,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
     @override
     @classmethod
     def from_correction_matrix_or_none(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
-        """Initialize a `GFlow` object from a matrix encoding a correction function.
+        """Initialize a ``GFlow`` object from a matrix encoding a correction function.
 
         Parameters
         ----------
@@ -1034,7 +1039,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
     @override
     def to_xzcorrections(self) -> XZCorrections[_PM_co]:
-        r"""Compute the XZ-corrections induced by the generalised flow encoded in `self`.
+        r"""Compute the XZ-corrections induced by the generalised flow encoded in ``self``.
 
         Returns
         -------
@@ -1076,14 +1081,14 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
             - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
             - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
             - The nodes in the partial order are the nodes in the open graph.
-            - The first layer of the partial order layers is :math:`O`, the output nodes of the open graph. This is guaranteed because open graphs without outputs do not have flow.
+            - The first layer of the partial order layers contains the outputs of the open graph if there are any.
 
         Specific properties of gflows:
             - If :math:`j \in g(i), i \neq j`, then :math:`i \prec j` (G1).
             - If :math:`j \in Odd(g(i)), i \neq j`, then :math:`i \prec j` (G2).
-            - If :math:`\lambda(i) = XY`, then :math:`i \notin g(i)` and :math:`i \in Odd((g(i)))` (G3).
-            - If :math:`\lambda(i) = XZ`, then :math:`i \in g(i)` and :math:`i \in Odd((g(i)))` (G4).
-            - If :math:`\lambda(i) = YZ`, then :math:`i \in g(i)` and :math:`i \notin Odd((g(i)))` (G5),
+            - If :math:`\lambda(i) = XY`, then :math:`i \notin g(i)`` and :math:`i \in Odd((g(i)))` (G3).
+            - If :math:`\lambda(i) = XZ`, then :math:`i \in g(i)`` and :math:`i \in Odd((g(i)))` (G4).
+            - If :math:`\lambda(i) = YZ`, then :math:`i \in g(i)`` and :math:`i \notin Odd((g(i)))` (G5),
         where :math:`i \in O^c`, :math:`g` is the correction function, :math:`prec` denotes the partial order, :math:`\lambda(i)` is the measurement plane of node :math:`i`, and :math:`Odd(s)` is the odd neighbourhood of the set :math:`s` in the open graph.
 
         See Definition 2.36 in Ref. [1].
@@ -1099,7 +1104,8 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
         layer_idx = len(self.partial_order_layers) - 1
         past_and_present_nodes: set[int] = set()
-        for layer in reversed(self.partial_order_layers[1:]):
+        shift = 1 if o_set else 0
+        for layer in reversed(self.partial_order_layers[shift:]):
             if not oc_set.issuperset(layer) or not layer or layer & past_and_present_nodes:
                 raise PartialOrderLayerError(PartialOrderLayerErrorReason.NthLayer, layer_index=layer_idx, layer=layer)
 
@@ -1156,7 +1162,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
     def node_measurement_label(self, node: int) -> Plane:
         """Get the measurement label of a given node in the open graph.
 
-        This method interprets measurements with a Pauli angle as `Plane` instances, in consistence with the gflow extraction routine.
+        This method interprets measurements with a Pauli angle as ``Plane`` instances, in consistence with the gflow extraction routine.
 
         Parameters
         ----------
@@ -1171,7 +1177,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
 @dataclass(frozen=True)
 class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
-    """An unmutable subclass of `GFlow` providing a representation of a causal flow.
+    """An unmutable subclass of ``GFlow`` providing a representation of a causal flow.
 
     This class differs from its parent class in the following:
         - The extraction of XZ-corrections from the causal flow does assumes that correction sets have one element only.
@@ -1192,7 +1198,7 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
 
     @override
     def to_xzcorrections(self) -> XZCorrections[_PM_co]:
-        r"""Compute the XZ-corrections induced by the causal flow encoded in `self`.
+        r"""Compute the XZ-corrections induced by the causal flow encoded in ``self``.
 
         Returns
         -------
@@ -1232,7 +1238,7 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
             - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
             - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
             - The nodes in the partial order are the nodes in the open graph.
-            - The first layer of the partial order layers is :math:`O`, the output nodes of the open graph. This is guaranteed because open graphs without outputs do not have flow.
+            - The first layer of the partial order layers is :math:`O`, the output nodes of the open graph. This is guaranteed because open graphs without outputs do not have flow, unless it is an empty open graph.
 
         Specific properties of causal flows:
             - Correction sets have one element only (C0),
@@ -1256,7 +1262,8 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
 
         layer_idx = len(self.partial_order_layers) - 1
         past_and_present_nodes: set[int] = set()
-        for layer in reversed(self.partial_order_layers[1:]):
+        shift = 1 if o_set else 0
+        for layer in reversed(self.partial_order_layers[shift:]):
             if not oc_set.issuperset(layer) or not layer or layer & past_and_present_nodes:
                 raise PartialOrderLayerError(PartialOrderLayerErrorReason.NthLayer, layer_index=layer_idx, layer=layer)
 
@@ -1308,14 +1315,14 @@ def _corrections_to_dag(
     Parameters
     ----------
     x_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of X-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an X-correction must be applied depending on the measurement result of `key`.
+        Mapping of X-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an X-correction must be applied depending on the measurement result of ``key``.
     z_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of Z-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an Z-correction must be applied depending on the measurement result of `key`.
+        Mapping of Z-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an Z-correction must be applied depending on the measurement result of ``key``.
 
     Returns
     -------
     nx.DiGraph[int]
-        Directed graph in which an edge `i -> j` represents a correction applied to qubit `j`, conditioned on the measurement outcome of qubit `i`.
+        Directed graph in which an edge ``i -> j`` represents a correction applied to qubit ``j``, conditioned on the measurement outcome of qubit ``i``.
 
     Notes
     -----
@@ -1341,15 +1348,15 @@ def _corrections_to_partial_order_layers(
     og : OpenGraph[_AM_co]
         The open graph with respect to which the XZ-corrections are defined.
     x_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of X-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an X-correction must be applied depending on the measurement result of `key`.
+        Mapping of X-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an X-correction must be applied depending on the measurement result of ``key``.
     z_corrections : Mapping[int, AbstractSet[int]]
-        Mapping of Z-corrections: in each (`key`, `value`) pair, `key` is a measured node, and `value` is the set of nodes on which an Z-correction must be applied depending on the measurement result of `key`.
+        Mapping of Z-corrections: in each (``key``, ``value``) pair, ``key`` is a measured node, and ``value`` is the set of nodes on which an Z-correction must be applied depending on the measurement result of ``key``.
 
     Returns
     -------
     tuple[frozenset[int], ...]
         Partial order between the open graph's in a layer form.
-        The set `layers[i]` comprises the nodes in layer `i`. Nodes in layer `i` are "larger" in the partial order than nodes in layer `i+1`.
+        The set ``layers[i]`` comprises the nodes in layer ``i``. Nodes in layer ``i`` are "larger" in the partial order than nodes in layer ``i+1``.
 
     Raises
     ------
@@ -1362,7 +1369,7 @@ def _corrections_to_partial_order_layers(
     oset = frozenset(og.output_nodes)  # First layer by convention if not empty
     dag: defaultdict[int, set[int]] = defaultdict(
         set
-    )  # `i: {j}` represents `i -> j`, i.e., a correction applied to qubit `j`, conditioned on the measurement outcome of qubit `i`.
+    )  # ``i: {j}`` represents ``i -> j``, i.e., a correction applied to qubit ``j``, conditioned on the measurement outcome of qubit ``i``.
     indegree_map: dict[int, int] = {}
 
     for corrections in [x_corrections, z_corrections]:
@@ -1424,7 +1431,7 @@ def _check_flow_general_properties(flow: PauliFlow[_AM_co]) -> None:
     Raises
     ------
     FlowError
-        If the causal flow is not well formed.
+        If the flow is not well formed.
 
     Notes
     -----
@@ -1432,7 +1439,7 @@ def _check_flow_general_properties(flow: PauliFlow[_AM_co]) -> None:
         - The domain of the correction function is :math:`O^c`, the non-output nodes of the open graph.
         - The image of the correction function is a subset of :math:`I^c`, the non-input nodes of the open graph.
         - The nodes in the partial order are the nodes in the open graph.
-        - The first layer of the partial order layers is :math:`O`, the output nodes of the open graph. This is guaranteed because open graphs without outputs do not have flow.
+        - Output nodes are always in layer 0 if there are any.
     """
     if not _check_correction_function_domain(flow.og, flow.correction_function):
         raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionDomain)
@@ -1441,11 +1448,13 @@ def _check_flow_general_properties(flow: PauliFlow[_AM_co]) -> None:
         raise FlowGenericError(FlowGenericErrorReason.IncorrectCorrectionFunctionImage)
 
     if len(flow.partial_order_layers) == 0:
-        raise PartialOrderError(PartialOrderErrorReason.Empty)
+        if flow.og.graph.nodes:
+            raise PartialOrderError(PartialOrderErrorReason.Empty)
+        return
 
     first_layer = flow.partial_order_layers[0]
     o_set = set(flow.og.output_nodes)
-    if first_layer != o_set or not first_layer:
+    if o_set and first_layer != o_set:
         raise PartialOrderLayerError(PartialOrderLayerErrorReason.FirstLayer, layer_index=0, layer=first_layer)
 
 
@@ -1470,10 +1479,10 @@ def _solve_pauli_correction_set(
     # Self-membership in the correction set, dictated by the local proposition (P4-P9).
     self_fixed_in = label in {Plane.XZ, Plane.YZ, Axis.Z}
     if self_fixed_in and node not in non_inputs:
-        return None  # `node` must correct itself but is an input node.
+        return None  # ``node`` must correct itself but is an input node.
 
     # Free variables of the GF(2) system: the X/Y-measured, non-input nodes that are not in the
-    # future of `node` (the "anachronical" candidates, plus `node` itself when it qualifies).
+    # future of ``node`` (the "anachronical" candidates, plus ``node`` itself when it qualifies).
     nonfuture_others = nodes - future - {node}
     variables = [a for a in nonfuture_others | {node} if a in non_inputs and labels.get(a) in {Axis.X, Axis.Y}]
     var_index = {v: i for i, v in enumerate(variables)}
@@ -1489,15 +1498,15 @@ def _solve_pauli_correction_set(
         return [1 if v in adjacency[g] else 0 for v in variables]
 
     # The system encodes constraints on the odd neighbourhood of the correction set. Each row is
-    # the indicator vector of which `variables` lie in the (open) neighbourhood of a node `g`, so
+    # the indicator vector of which ``variables`` lie in the (open) neighbourhood of a node ``g``, so
     # ``row · p`` (mod 2) is the parity of the variable part of the correction set within the
-    # neighbourhood of `g`, i.e. whether `g` belongs to the odd neighbourhood of that part. The
-    # matching `rhs` is the required parity of that membership (1 = `g` must be in the odd
-    # neighbourhood, 0 = it must not), after folding in `const_at(g)`, the fixed part's contribution.
+    # neighbourhood of ``g``, i.e. whether ``g`` belongs to the odd neighbourhood of that part. The
+    # matching ``rhs`` is the required parity of that membership (1 = ``g`` must be in the odd
+    # neighbourhood, 0 = it must not), after folding in ``const_at(g)``, the fixed part's contribution.
     matrix: list[list[int]] = []
     rhs: list[int] = []
 
-    # Odd-neighbourhood constraints on the future nodes (the Z-corrections of `node`).
+    # Odd-neighbourhood constraints on the future nodes (the Z-corrections of ``node``).
     for g in future:
         matrix.append(row_at(g))
         rhs.append((1 if g in z_corr else 0) ^ const_at(g))
@@ -1506,7 +1515,7 @@ def _solve_pauli_correction_set(
     for g in nonfuture_others:
         lab_g = labels.get(g)
 
-        # `nonfuture_others` never contains output nodes (outputs are maximally future).
+        # ``nonfuture_others`` never contains output nodes (outputs are maximally future).
         assert lab_g is not None
 
         # P2: the odd neighbourhood vanishes on non-future, non-(Y/Z) nodes.
@@ -1514,7 +1523,7 @@ def _solve_pauli_correction_set(
             matrix.append(row_at(g))
             rhs.append(const_at(g))
 
-        # P3: a non-future Y-measured node `g` must lie outside the closed odd neighbourhood of the
+        # P3: a non-future Y-measured node ``g`` must lie outside the closed odd neighbourhood of the
         # correction set, i.e. its membership and odd-neighbourhood membership must coincide.
         elif lab_g == Axis.Y:
             row = row_at(g)
@@ -1523,7 +1532,7 @@ def _solve_pauli_correction_set(
             matrix.append(row)
             rhs.append(const_at(g))
 
-    # Local proposition on `node` (P4-P9).
+    # Local proposition on ``node`` (P4-P9).
     if label == Axis.Y:
         # P9: exactly one of (node in p, node in Odd(p)).
         row = row_at(node)
@@ -1556,7 +1565,7 @@ def _solve_pauli_correction_set(
     for coeffs, const in zip(lhs, b, strict=True):
         if not np.any(coeffs) and const:
             return None
-    # `solve_f2_linear_system` does not check if a solution exists or if `lhs` is in REF.
+    # ``solve_f2_linear_system`` does not check if a solution exists or if ``lhs`` is in REF.
     solution = solve_f2_linear_system(lhs, MatGF2(b))
 
     correction_set = set(fixed_in_p)
@@ -1573,7 +1582,7 @@ def _reconstruct_pauli_correction_function(xz: XZCorrections[AbstractMeasurement
     adjacency: dict[int, set[int]] = {n: og.neighbors({n}) for n in og.graph.nodes}
     labels: dict[int, Plane | Axis] = {n: meas.to_plane_or_axis() for n, meas in og.measurements.items()}
 
-    # future_of[node]: nodes measured strictly after `node` (more future in the partial order).
+    # future_of[node]: nodes measured strictly after ``node`` (more future in the partial order).
     future_of: dict[int, set[int]] = {}
     accumulated: set[int] = set()
     for layer in xz.partial_order_layers:
