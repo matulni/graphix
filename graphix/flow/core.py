@@ -580,13 +580,7 @@ class PauliFlow(Generic[_AM_co]):
     -----
     - See Definition 5 in Ref. [1] for a definition of Pauli flow.
 
-    <<<<<<< HEAD
-    - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only `og` and `correction_function` are necessary to initialize an `PauliFlow` instance (see :func:`PauliFlow.from_correction_matrix_or_none`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
-
-    - A correct flow can only exist on an open graph with output nodes, so `layers[0]` always contains a finite set of nodes.
-    =======
     - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only ``og`` and ``correction_function`` are necessary to initialize an ``PauliFlow`` instance (see :func:`PauliFlow.try_from_correction_matrix`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
-    >>>>>>> master
 
     References
     ----------
