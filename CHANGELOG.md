@@ -100,6 +100,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - #512: Method `Circuit.simulate_statevector` accepts a `backend: DenseStateBackend[_DenseStateT] | Literal["statevector", "densitymatrix"]` parameter.
 
+- #557: Homogeneize namespace. See PR or commit text for detailed renaming list. Fixed the following convention:
+  - `.to_<object>` for transformations that can only return `object` or raise an exception. Equivalently, we use `.from_<object>` for constructors.
+  - `.to_<object>_or_none` for transformations that can return `object` or `None`. Equivalently, we use `.from_<object>_or_none` for constructors.
+  - accessor methods use nounds instead of verb + noun. Example: `Pattern.graph` instead of `Pattern.extract_graph`.
+
 ## [0.3.5] - 2026-03-26
 
 ### Added
