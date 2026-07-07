@@ -106,6 +106,7 @@ class ReverseDependency:
             doctest_modules=False,
             install_target=".[dev]",
         ),
+        ReverseDependency("https://github.com/matulni/graphix-mqtbench", branch="minimal"),
     ],
 )
 def tests_reverse_dependencies(session: Session, package: ReverseDependency) -> None:
