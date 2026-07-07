@@ -136,7 +136,17 @@ class TestStatevec:
         data = generate_rnd_data(fx_rng, nqubit)
         sv_1 = Statevec(data=data, max_qubits=6)
         with pytest.raises(ValueError):
-            Statevec(data=sv_1, max_qubits=nqubit + 1)
+            Statevec(data=sv_1, max_qubits=nqubit - 1)
+
+    @pytest.mark.parametrize("nqubit", range(5))
+    def test_init_statevec_max_qubits_truncate(self, fx_rng: Generator, nqubit: int) -> None:
+        data = generate_rnd_data(fx_rng, nqubit)
+        sv_1 = Statevec(data=data, max_qubits=6)
+        sv_2 = Statevec(data=sv_1, max_qubits=nqubit + 1)
+        assert sv_2.nqubit == nqubit
+        assert sv_2.max_qubits == nqubit + 1
+        assert len(sv_2._psi) == 1 << (nqubit + 1)
+        assert sv_1.isclose(sv_2)
 
     @pytest.mark.parametrize(
         ("sv", "edge", "data_ref"),
@@ -627,7 +637,7 @@ class TestStatevectorBackend:
         assert result == expected_result
         assert list(backend.node_index) == list(range(1, n_neighbors + 1))
 
-    @pytest.mark.parametrize("permutation", itertools.permutations(range(3)))
+    @pytest.mark.parametrize("permutation", list(itertools.permutations(range(3))))
     def test_permute(self, fx_rng: Generator, permutation: Sequence[int]) -> None:
         nqubits = len(permutation)
         statevec = Statevec(rand_state_vector(nqubits, fx_rng))

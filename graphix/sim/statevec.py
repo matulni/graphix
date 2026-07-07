@@ -98,7 +98,7 @@ class Statevec(DenseState):
         - a single :class:`graphix.sim.statevec.Statevec`
 
         If ``nqubit`` is not provided, it is inferred from ``data``.
-        If ``max_qubits`` is not provided, it is set to match the provided or inferred ``nqubit``.
+        If ``max_qubits`` is not provided, it is set to match the inferred ``max_qubits``.
         If only one :class:`graphix.states.State` is provided and ``nqubit`` is a valid integer, the statevector is initialized in the tensor product state.
         If a class:`graphix.sim.statevec.Statevec` is provided, a copy is returned.
         Consistency between provided ``nqubit``, ``max_qubits`` and ``data`` is checked.
@@ -133,11 +133,15 @@ class Statevec(DenseState):
             self._nqubit = data.nqubit
 
             if max_qubits is not None:
-                if max_qubits < data.max_qubits:
+                if max_qubits < data.nqubit:
                     raise ValueError(
-                        f"`max_qubits` can't be smaller than the capacity of input state: {max_qubits} < {data.max_qubits}."
+                        f"`max_qubits` can't be smaller than the number of qubits of the input state: {max_qubits} < {data.nqubit}."
                     )
-                self.ensure_capacity(max_qubits)
+                if max_qubits < data.max_qubits:
+                    self._max_qubits = max_qubits
+                    self._psi = self._psi[: 1 << max_qubits]  # truncate
+                else:
+                    self.ensure_capacity(max_qubits)  # extend
             return
 
         # The type
@@ -269,8 +273,9 @@ class Statevec(DenseState):
             is needed, ``self._psi`` is extended to size ``2**required_qubits``.
         """
         if required_qubits > self.max_qubits:
-            offset = (1 << required_qubits) - len(self._psi)
-            self._psi = np.concatenate([self._psi, np.empty(offset, dtype=self._psi.dtype)])
+            new_psi = np.empty(1 << required_qubits, dtype=self._psi.dtype)
+            new_psi[: len(self._psi)] = self._psi
+            self._psi = new_psi
             self._max_qubits = required_qubits
 
     @override
