@@ -265,3 +265,17 @@ def test_draw_graph_reference(flow_and_not_pauli_presimulate: bool) -> Figure:
         flow_from_pattern=flow_and_not_pauli_presimulate, node_distance=(1, 1), measurement_labels=True, legend=False
     )
     return plt.gcf()
+
+
+@pytest.mark.usefixtures("mock_plot")
+@pytest.mark.parametrize("infer_pauli_measurements", [False, True])
+@pytest.mark.mpl_image_compare
+def test_legend_pauli_measurements(infer_pauli_measurements: bool) -> Figure:
+    # See https://github.com/TeamGraphix/graphix/issues/554
+    circuit = Circuit(1)
+    circuit.h(0)
+    pattern = circuit.transpile().pattern
+    if infer_pauli_measurements:
+        pattern = pattern.infer_pauli_measurements()
+    pattern.draw()
+    return plt.gcf()

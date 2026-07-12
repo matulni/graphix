@@ -587,16 +587,20 @@ class GraphVisualizer:
             marker=DEFAULT_NODE_MARKER,
         )
         if self.options.pauli_measurements:
-            plt.scatter(
-                [],
-                [],
-                edgecolor=DEFAULT_NODE_EC,
-                facecolor=PAULI_NODE_FC,
-                s=150,
-                zorder=2,
-                label="Pauli-measured nodes",
-                marker=DEFAULT_NODE_MARKER,
+            has_pauli_measurements = any(
+                isinstance(measurement, PauliMeasurement) for measurement in self.og.measurements.values()
             )
+            if has_pauli_measurements:
+                plt.scatter(
+                    [],
+                    [],
+                    edgecolor=DEFAULT_NODE_EC,
+                    facecolor=PAULI_NODE_FC,
+                    s=150,
+                    zorder=2,
+                    label="Pauli-measured nodes",
+                    marker=DEFAULT_NODE_MARKER,
+                )
         plt.plot([], [], "--", c=EDGE_C, label="Graph edge")
 
         assert self._source is not None
@@ -612,7 +616,26 @@ class GraphVisualizer:
             case _:
                 assert_never(self._source)
 
-        plt.legend(loc="center left", fontsize=10, bbox_to_anchor=(1, 0.5))
+        # Set scatterpoints=1 to prevent node icons from appearing
+        # three times in the legend with the Agg backend used by
+        # pytest-mpl.
+        legend = plt.legend(loc="center left", fontsize=10, bbox_to_anchor=(1, 0.5), scatterpoints=1)
+
+        # Resize the figure to accommodate the legend.
+        fig = plt.gcf()
+        fig.canvas.draw()  # Force layout
+
+        renderer = fig.canvas.get_renderer()
+        bbox = legend.get_window_extent(renderer=renderer)
+
+        # Width of the legend in inches
+        padding = 0.5
+        legend_width = bbox.width / fig.dpi + padding
+        legend_height = bbox.height / fig.dpi + padding
+
+        width, height = fig.get_size_inches()
+        fig.set_size_inches(width + legend_width, max(height, legend_height), forward=True)
+        fig.subplots_adjust(right=width / (width + legend_width))
 
 
 @singledispatch
