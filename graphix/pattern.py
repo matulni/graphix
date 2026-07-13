@@ -1543,9 +1543,9 @@ class Pattern:
         """
         if annotations is None:
             og = self.extract_opengraph()
-            gv = GraphVisualizer.from_opengraph(og=og, **options)
+            gv = GraphVisualizer.from_opengraph(og, **options)
         else:
-            xz_corrections = self.extract_xzcorrections()
+            xzcorrections = self.extract_xzcorrections()
             match annotations:
                 case DrawPatternAnnotations.Flow:
                     flow: PauliFlow[Measurement] | None = None
@@ -1554,12 +1554,12 @@ class Pattern:
                         try:
                             # We first try to extract a causal flow because the plotting
                             # algorithm for causal flows yields nicer plots.
-                            flow = xz_corrections.downcast_bloch().to_causal_flow()
+                            flow = xzcorrections.downcast_bloch().to_causal_flow()
                         except (TypeError, FlowError):
                             try:
                                 # If the pattern is not consistent with a Pauli flow,
                                 # it won't be consistent with a gflow.
-                                flow = xz_corrections.to_pauli_flow()
+                                flow = xzcorrections.to_pauli_flow()
                             except FlowError:
                                 warn(
                                     "The pattern is not consistent with a flow. An attempt to be extract the flow from the underlying open graph will be made.",
@@ -1580,10 +1580,10 @@ class Pattern:
                                 "The pattern's open graph does not have Pauli flow. Consider setting the `annotations` parameter to `None` or `DrawPatternAnnotations.XZCorrections`."
                             )
 
-                    gv = GraphVisualizer.from_flow(flow=flow, **options)
+                    gv = GraphVisualizer.from_flow(flow, **options)
 
                 case DrawPatternAnnotations.XZCorrections:
-                    gv = GraphVisualizer.from_xzcorrections(xz_corr=xz_corrections, **options)
+                    gv = GraphVisualizer.from_xzcorrections(xzcorrections, **options)
 
         gv.visualize()
 
