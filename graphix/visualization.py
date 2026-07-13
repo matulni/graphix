@@ -216,14 +216,6 @@ class GraphVisualizer:
         GraphVisualizer
         """
         options = VisualizationOptions(**kwargs)
-        if not og.graph.nodes:
-            return GraphVisualizer(
-                og=og,
-                pos={},
-                edge_paths={},
-                options=options,
-                _source=_Source.OG,
-            )
         pos = _compute_positions(og)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(og, pos)
@@ -254,14 +246,6 @@ class GraphVisualizer:
         GraphVisualizer
         """
         options = VisualizationOptions(**kwargs)
-        if not flow.og.graph.nodes:
-            return GraphVisualizer(
-                og=flow.og,
-                pos={},
-                edge_paths={},
-                options=options,
-                _source=_Source.Flow,
-            )
         pos = _compute_positions(flow)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(flow.og, pos)
@@ -297,14 +281,6 @@ class GraphVisualizer:
         GraphVisualizer
         """
         options = VisualizationOptions(**kwargs)
-        if not xz_corr.og.graph.nodes:
-            return GraphVisualizer(
-                og=xz_corr.og,
-                pos={},
-                edge_paths={},
-                options=options,
-                _source=_Source.XZCorr,
-            )
         pos = _compute_positions(xz_corr)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(xz_corr.og, pos)
@@ -665,6 +641,8 @@ def _(obj: OpenGraph[AbstractMeasurement]) -> dict[int, _Point]:
         X-coordinates represent the layer in the partial order (higher x = earlier layer).
         Y-coordinates represent the vertical position within start node chains.
     """
+    if not obj.graph.nodes:
+        return {}
     layers: dict[int, int] = {}
     connected_components = list(nx.connected_components(obj.graph))
 
