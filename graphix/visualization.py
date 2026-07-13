@@ -625,8 +625,7 @@ class GraphVisualizer:
         fig = plt.gcf()
         fig.canvas.draw()  # Force layout
 
-        renderer = fig.canvas.get_renderer()
-        bbox = legend.get_window_extent(renderer=renderer)
+        bbox = legend.get_window_extent()
 
         # Width of the legend in inches
         padding = 0.5
