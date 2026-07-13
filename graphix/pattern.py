@@ -1525,7 +1525,7 @@ class Pattern:
                 - ``DrawPatternAnnotations.XZCorrections``: show the pattern's XZ-corrections.
                 - ``None``: show the underlying open graph only.
         flow_from_pattern : bool, default=True
-            If ``True``, the command sequence of the pattern is used to derive flow or gflow structure. If ``False``, only the underlying opengraph is used.
+            If ``True``, the command sequence of the pattern is used to derive a flow structure. If ``False``, only the underlying open graph is used.
         options : Unpack[DrawKwargs]
             Options controlling graph visualization. See :class:`VisualizationOptions`.
         stacklevel : int, optional
@@ -1535,37 +1535,36 @@ class Pattern:
         Raises
         ------
         PatternError
-            If the underlying opengraph does not have flow.
+            If the underlying open graph does not have flow.
 
         Notes
         -----
-        If ``flow_from_pattern==True`` but the pattern is not compatible with a gflow, an attempt to be extract the flow from the underlying open graph will be made while warning the user.
+        If ``flow_from_pattern==True`` but the pattern is not compatible with a causal flow, gflow, or Pauli flow, an attempt to be extract the flow from the underlying open graph will be made while warning the user.
         """
         if annotations is None:
             og = self.extract_opengraph()
             gv = GraphVisualizer.from_opengraph(og=og, **options)
         else:
+            xz_corrections = self.extract_xzcorrections()
             match annotations:
                 case DrawPatternAnnotations.Flow:
                     flow: PauliFlow[Measurement] | None = None
 
                     if flow_from_pattern:
                         try:
-                            xz_corrections = self.extract_xzcorrections().downcast_bloch()
-                        except TypeError:
-                            pass
-                        else:
+                            # We first try to extract a causal flow because the plotting
+                            # algorithm for causal flows yields nicer plots.
+                            flow = xz_corrections.downcast_bloch().to_causal_flow()
+                        except (TypeError, FlowError):
                             try:
-                                flow = xz_corrections.to_causal_flow()
+                                # If the pattern is not consistent with a Pauli flow,
+                                # it won't be consistent with a gflow.
+                                flow = xz_corrections.to_pauli_flow()
                             except FlowError:
-                                try:
-                                    flow = xz_corrections.to_gflow()
-                                except FlowError:
-                                    warn(
-                                        "The pattern is not consistent with a causal flow or a gflow. An attempt to be extract the flow from the underlying open graph will be made.",
-                                        stacklevel=stacklevel,
-                                    )
-
+                                warn(
+                                    "The pattern is not consistent with a flow. An attempt to be extract the flow from the underlying open graph will be made.",
+                                    stacklevel=stacklevel,
+                                )
                     if flow is None:
                         og = self.extract_opengraph()
                         try:
@@ -1584,8 +1583,7 @@ class Pattern:
                     gv = GraphVisualizer.from_flow(flow=flow, **options)
 
                 case DrawPatternAnnotations.XZCorrections:
-                    xzcorrections = self.extract_xzcorrections()
-                    gv = GraphVisualizer.from_xzcorrections(xz_corr=xzcorrections, **options)
+                    gv = GraphVisualizer.from_xzcorrections(xz_corr=xz_corrections, **options)
 
         gv.visualize()
 
