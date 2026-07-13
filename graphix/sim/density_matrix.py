@@ -455,7 +455,7 @@ class DensityMatrix(DenseState):
         noise : Noise
             Noise to apply
         """
-        channel = noise.to_kraus_channel()
+        channel = noise.to_krauschannel()
         self.apply_channel(channel, qubits)
 
     def subs(self, variable: Parameter, substitute: ExpressionOrSupportsFloat) -> DensityMatrix:

@@ -243,7 +243,7 @@ class StandardizedPattern(_StandardizedPattern):
 
         If you need to recover the cut between Pauli measurements and
         non-Pauli measurements or the shifted signal, you can use
-        :meth:`~graphix.remove_pauli_measurements.PauliPushingCut.from_standardized_pattern` instead.
+        :meth:`~graphix.remove_pauli_measurements.PauliPushingCut.from_standardizedpattern` instead.
 
         Parameters
         ----------
@@ -262,9 +262,9 @@ class StandardizedPattern(_StandardizedPattern):
         """
         from graphix.remove_pauli_measurements import PauliPushingCut  # noqa: PLC0415
 
-        return PauliPushingCut.from_standardized_pattern(
+        return PauliPushingCut.from_standardizedpattern(
             self, leave_nodes, stacklevel=stacklevel + 1
-        ).to_standardized_pattern()
+        ).to_standardizedpattern()
 
     def max_space(self) -> int:
         """Compute the maximum number of nodes that must be present in the graph (graph space) during the execution of the space-optimal pattern for the given measurement order.

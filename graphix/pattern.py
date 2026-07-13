@@ -1784,7 +1784,7 @@ class Pattern:
 
         If you need to recover the cut between Pauli measurements and
         non-Pauli measurements or the shifted signal, you can use
-        :meth:`~graphix.remove_pauli_measurements.PauliPushingCut.from_standardized_pattern` instead.
+        :meth:`~graphix.remove_pauli_measurements.PauliPushingCut.from_standardizedpattern` instead.
 
         Parameters
         ----------
@@ -1854,7 +1854,7 @@ class Pattern:
         from graphix.remove_pauli_measurements import PauliPushingCut, remove_pauli_measurements  # noqa: PLC0415
 
         standardized_pattern = optimization.StandardizedPattern.from_pattern(self)
-        cut = PauliPushingCut.from_standardized_pattern(standardized_pattern, stacklevel=stacklevel + 1)
+        cut = PauliPushingCut.from_standardizedpattern(standardized_pattern, stacklevel=stacklevel + 1)
         standardized_pattern = remove_pauli_measurements(cut, stacklevel=stacklevel + 1)
         pattern = standardized_pattern.to_pattern() if standardize else standardized_pattern.to_space_optimal_pattern()
         if copy:

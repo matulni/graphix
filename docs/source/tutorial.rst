@@ -269,7 +269,7 @@ In the following example, we apply dephasing noise to qubit preparation commands
             return 1
 
         @typing_extensions.override
-        def to_kraus_channel(self) -> KrausChannel:
+        def to_krauschannel(self) -> KrausChannel:
             return dephasing_channel(self.prob)
 
     @dataclass

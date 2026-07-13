@@ -580,7 +580,7 @@ class PauliFlow(Generic[_AM_co]):
     -----
     - See Definition 5 in Ref. [1] for a definition of Pauli flow.
 
-    - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only ``og`` and ``correction_function`` are necessary to initialize an ``PauliFlow`` instance (see :func:`PauliFlow.try_from_correction_matrix`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
+    - The flow's correction function defines a partial order (see Def. 2.8 and 2.9, Lemma 2.11 and Theorem 2.12 in Ref. [2]), therefore, only ``og`` and ``correction_function`` are necessary to initialize an ``PauliFlow`` instance (see :func:`PauliFlow.from_correctionmatrix_or_none`). However, flow-finding algorithms generate a partial order in a layer form, which is necessary to extract the flow's XZ-corrections, so it is stored as an attribute.
 
     References
     ----------
@@ -595,7 +595,7 @@ class PauliFlow(Generic[_AM_co]):
     _CF_PREFIX: str = "p"  # Correction function prefix for printing
 
     @classmethod
-    def from_correction_matrix_or_none(cls, correction_matrix: CorrectionMatrix[_AM_co]) -> Self | None:
+    def from_correctionmatrix_or_none(cls, correction_matrix: CorrectionMatrix[_AM_co]) -> Self | None:
         """Initialize a ``PauliFlow`` object from a matrix encoding a correction function.
 
         Parameters
@@ -1008,7 +1008,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
 
     @override
     @classmethod
-    def from_correction_matrix_or_none(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
+    def from_correctionmatrix_or_none(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> Self | None:
         """Initialize a ``GFlow`` object from a matrix encoding a correction function.
 
         Parameters
@@ -1029,7 +1029,7 @@ class GFlow(PauliFlow[_PM_co], Generic[_PM_co]):
         ----------
         [1] Mitosek and Backens, 2024 (arXiv:2410.23439).
         """
-        return super().from_correction_matrix_or_none(correction_matrix)
+        return super().from_correctionmatrix_or_none(correction_matrix)
 
     @override
     def to_xzcorrections(self) -> XZCorrections[_PM_co]:
@@ -1187,7 +1187,7 @@ class CausalFlow(GFlow[_PM_co], Generic[_PM_co]):
 
     @override
     @classmethod
-    def from_correction_matrix_or_none(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> None:
+    def from_correctionmatrix_or_none(cls, correction_matrix: CorrectionMatrix[_PM_co]) -> None:
         raise NotImplementedError("Initialization of a causal flow from a correction matrix is not supported.")
 
     @override
