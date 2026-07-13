@@ -199,6 +199,19 @@ def test_og() -> None:
     pattern.draw(annotations=None)
 
 
+@pytest.mark.usefixtures("mock_plot")
+def test_non_determinist() -> None:
+    pattern = Pattern(
+        input_nodes=[0],
+        cmds=[command.N(1), command.E((0, 1)), command.M(0)],
+    )
+    with pytest.warns(
+        UserWarning,
+        match="The pattern is not consistent with a flow. An attempt to be extract the flow from the underlying open graph will be made.",
+    ):
+        pattern.draw()
+
+
 # Compare with baseline/test_draw_graph_reference.png
 # Update baseline by running: pytest --mpl-generate-path=tests/baseline
 @pytest.mark.usefixtures("mock_plot")
