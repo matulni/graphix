@@ -26,7 +26,7 @@ class TestStatevector:
         n = 3
         k = 0
         # for measurement into |-> returns [[0, 0], ..., [0, 0]] (whose norm is zero)
-        statevector = state.to_statevector()
+        statevector = state.to_statevector_numpy()
         m_op = np.outer(statevector, statevector.T.conjugate())
         sv = Statevector(nqubit=n)
         sv.evolve(m_op.astype(np.complex128, copy=False), [k])
@@ -38,7 +38,9 @@ class TestStatevector:
     def test_measurement_into_minus_state(self) -> None:
         n = 3
         k = 0
-        m_op = np.outer(BasicStates.MINUS.to_statevector(), BasicStates.MINUS.to_statevector().T.conjugate())
+        m_op = np.outer(
+            BasicStates.MINUS.to_statevector_numpy(), BasicStates.MINUS.to_statevector_numpy().T.conjugate()
+        )
         sv = Statevector(nqubit=n)
         sv.evolve(m_op.astype(np.complex128, copy=False), [k])
         with pytest.raises(AssertionError):

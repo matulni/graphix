@@ -25,7 +25,7 @@ def random_op(sites: int, rng: Generator) -> npt.NDArray[np.complex128]:
 
 
 CZ = Ops.CZ
-plus = BasicStates.PLUS.to_statevector()
+plus = BasicStates.PLUS.to_statevector_numpy()
 
 
 class TestTN:

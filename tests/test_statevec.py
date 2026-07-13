@@ -70,7 +70,7 @@ class TestStatevector:
         assert len(vec.dims()) == nqb
 
         vec = Statevector(nqubit=nqb, data=BasicStates.MINUS_I)
-        sv_list = [BasicStates.MINUS_I.to_statevector() for _ in range(nqb)]
+        sv_list = [BasicStates.MINUS_I.to_statevector_numpy() for _ in range(nqb)]
         sv = functools.reduce(lambda a, b: np.kron(a, b).astype(np.complex128, copy=False), sv_list)
         assert np.allclose(vec.psi, sv.reshape((2,) * nqb))
         assert len(vec.dims()) == nqb
@@ -80,7 +80,7 @@ class TestStatevector:
         rand_plane = fx_rng.choice(np.array(Plane))
         state = PlanarState(rand_plane, rand_angle)
         vec = Statevector(nqubit=nqb, data=state)
-        sv_list = [state.to_statevector() for _ in range(nqb)]
+        sv_list = [state.to_statevector_numpy() for _ in range(nqb)]
         sv = functools.reduce(lambda a, b: np.kron(a, b).astype(np.complex128, copy=False), sv_list)
         assert np.allclose(vec.psi, sv.reshape((2,) * nqb))
         assert len(vec.dims()) == nqb
@@ -90,7 +90,7 @@ class TestStatevector:
         rand_planes = fx_rng.choice(np.array(Plane), nqb)
         states = [PlanarState(plane=i, angle=j) for i, j in zip(rand_planes, rand_angles, strict=True)]
         vec = Statevector(nqubit=nqb, data=states)
-        sv_list = [state.to_statevector() for state in states]
+        sv_list = [state.to_statevector_numpy() for state in states]
         sv = functools.reduce(lambda a, b: np.kron(a, b).astype(np.complex128, copy=False), sv_list)
         assert np.allclose(vec.psi, sv.reshape((2,) * nqb))
         assert len(vec.dims()) == nqb
