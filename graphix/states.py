@@ -39,7 +39,7 @@ class PlanarState(State):
     """Light object used to instantiate backends.
 
     doesn't cover all possible states but this is
-    covered in :class:`graphix.sim.statevec.Statevec`
+    covered in :class:`graphix.sim.statevec.Statevector`
     and :class:`graphix.sim.densitymatrix.DensityMatrix`
     constructors.
 

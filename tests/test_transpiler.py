@@ -12,7 +12,7 @@ from graphix.fundamentals import ANGLE_PI, Axis, Sign
 from graphix.instruction import I, InstructionKind
 from graphix.random_objects import rand_circuit, rand_gate, rand_state_vector
 from graphix.sim.density_matrix import DensityMatrix
-from graphix.sim.statevec import Statevec, StatevectorBackend
+from graphix.sim.statevec import Statevector, StatevectorBackend
 from graphix.simulator import DefaultMeasureMethod
 from graphix.states import BasicStates
 from graphix.transpiler import Circuit, OutputIndex, OutputKind, decompose_ccx, transpile_swaps
@@ -98,7 +98,7 @@ class TestTranspilerUnitGates:
         state_mbqc = pattern.simulate_pattern(
             rng=rng, input_state=input_state, branch_selector=branch_selector, backend=backend
         )
-        if isinstance(state_mbqc, Statevec) and isinstance(state, Statevec):
+        if isinstance(state_mbqc, Statevector) and isinstance(state, Statevector):
             assert state_mbqc.isclose(state)
         elif isinstance(state_mbqc, DensityMatrix) and isinstance(state, DensityMatrix):
             assert np.allclose(state_mbqc.rho, state.rho)

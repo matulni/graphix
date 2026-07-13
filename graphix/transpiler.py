@@ -29,7 +29,7 @@ from graphix.optimization import StandardizedPattern
 from graphix.pattern import Pattern
 from graphix.sim.base_backend import DenseStateBackend
 from graphix.sim.density_matrix import DensityMatrixBackend
-from graphix.sim.statevec import Statevec, StatevectorBackend
+from graphix.sim.statevec import Statevector, StatevectorBackend
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
@@ -533,7 +533,7 @@ class Circuit:
         rng: Generator | None = None,
         *,
         stacklevel: int = 1,
-    ) -> SimulateResult[Statevec]: ...
+    ) -> SimulateResult[Statevector]: ...
 
     @overload
     def simulate_statevector(
@@ -565,8 +565,8 @@ class Circuit:
         rng: Generator | None = None,
         *,
         stacklevel: int = 1,
-    ) -> SimulateResult[_DenseStateT] | SimulateResult[_DenseStateT | Statevec | DensityMatrix]:
-        # `SimulateResult` is not covariant in `_DenseStateT` so `SimulateResult[_DenseStateT]` is not a subtype of `SimulateResult[_DenseStateT | Statevec | DensityMatrix]`
+    ) -> SimulateResult[_DenseStateT] | SimulateResult[_DenseStateT | Statevector | DensityMatrix]:
+        # `SimulateResult` is not covariant in `_DenseStateT` so `SimulateResult[_DenseStateT]` is not a subtype of `SimulateResult[_DenseStateT | Statevector | DensityMatrix]`
         r"""Simulate the gate sequence with a backend and input state of choice.
 
         By default, this method uses the statevector backend and initializes the register to :math:`|+\rangle^{\otimes n}`.

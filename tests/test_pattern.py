@@ -23,7 +23,7 @@ from graphix.optimization import StandardizedPattern
 from graphix.pattern import Pattern, PatternError, RunnabilityError, RunnabilityErrorReason, shift_outcomes
 from graphix.random_objects import rand_circuit, rand_gate
 from graphix.sim.density_matrix import DensityMatrix
-from graphix.sim.statevec import Statevec
+from graphix.sim.statevec import Statevector
 from graphix.sim.tensornet import MBQCTensorNet
 from graphix.simulator import PatternSimulator
 from graphix.states import PlanarState
@@ -36,8 +36,8 @@ if TYPE_CHECKING:
     from graphix.simulator import _BackendLiteral
 
 
-def compare_backend_result_with_statevec(backend_state: Statevec | DensityMatrix, statevec: Statevec) -> float:
-    if isinstance(backend_state, Statevec):
+def compare_backend_result_with_statevec(backend_state: Statevector | DensityMatrix, statevec: Statevector) -> float:
+    if isinstance(backend_state, Statevector):
         return float(backend_state.fidelity(statevec))
     if isinstance(backend_state, DensityMatrix):
         return float(np.abs(np.dot(backend_state.rho.flatten().conjugate(), DensityMatrix(statevec).rho.flatten())))
@@ -172,7 +172,7 @@ class TestPattern:
             sim = PatternSimulator(pattern, backend_type)
             sim.run(rng=fx_rng)
             state = sim.backend.state
-            if isinstance(state, Statevec):
+            if isinstance(state, Statevector):
                 assert state.dims() == ()
             elif isinstance(state, DensityMatrix):
                 assert state.dims() == (1, 1)
@@ -239,7 +239,7 @@ class TestPattern:
         pattern.remove_pauli_measurements()
         pattern.minimize_space()
         state = circuit.simulate_statevector().statevec
-        state_mbqc: Statevec | DensityMatrix = pattern.simulate_pattern(backend, rng=rng)
+        state_mbqc: Statevector | DensityMatrix = pattern.simulate_pattern(backend, rng=rng)
         assert compare_backend_result_with_statevec(state_mbqc, state) == pytest.approx(1)
 
     @pytest.mark.parametrize("jumps", range(1, 11))
@@ -1393,7 +1393,7 @@ class TestMCOps:
         rand_planes = fx_rng.choice(np.array(Plane), nqb)
         states = [PlanarState(plane=i, angle=j) for i, j in zip(rand_planes, rand_angles, strict=True)]
         randpattern = rand_circ.transpile().pattern
-        out: Statevec | DensityMatrix = randpattern.simulate_pattern(backend=backend, input_state=states, rng=fx_rng)
+        out: Statevector | DensityMatrix = randpattern.simulate_pattern(backend=backend, input_state=states, rng=fx_rng)
         out_circ = rand_circ.simulate_statevector(input_state=states).statevec
         assert compare_backend_result_with_statevec(out, out_circ) == pytest.approx(1)
 

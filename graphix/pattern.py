@@ -28,7 +28,7 @@ from graphix.fundamentals import Plane
 from graphix.measurements import BlochMeasurement, Measurement, Outcome, toggle_outcome
 from graphix.pretty_print import OutputFormat, pattern_to_str
 from graphix.qasm3_exporter import pattern_to_qasm3_lines
-from graphix.sim import DensityMatrix, MBQCTensorNet, Statevec
+from graphix.sim import DensityMatrix, MBQCTensorNet, Statevector
 from graphix.simulator import PatternSimulator
 from graphix.space_minimization import pattern_max_space
 from graphix.states import BasicStates
@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     K = TypeVar("K")
     V = TypeVar("V")
 
-_BuiltinBackendState = DensityMatrix | Statevec | MBQCTensorNet
+_BuiltinBackendState = DensityMatrix | Statevector | MBQCTensorNet
 
 
 class DrawPatternAnnotations(Enum):
@@ -1402,14 +1402,14 @@ class Pattern:
         self,
         backend: StatevectorBackend | Literal["statevector"] = "statevector",
         input_state: State
-        | Statevec
+        | Statevector
         | Iterable[State]
         | Iterable[ExpressionOrSupportsComplex]
         | Iterable[Iterable[ExpressionOrSupportsComplex]]
         | None = ...,
         rng: Generator | None = ...,
         **kwargs: Any,
-    ) -> Statevec: ...
+    ) -> Statevector: ...
 
     @overload
     def simulate_pattern(

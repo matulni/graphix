@@ -19,7 +19,7 @@ from graphix.pattern import Pattern
 from graphix.pretty_print import OutputFormat, _factor_uniform_magnitude, complex_to_str, pattern_to_str
 from graphix.random_objects import rand_circuit
 from graphix.sim.density_matrix import DensityMatrix
-from graphix.sim.statevec import Statevec
+from graphix.sim.statevec import Statevector
 from graphix.states import BasicStates
 from graphix.transpiler import Circuit
 
@@ -276,7 +276,7 @@ def test_complex_to_str_values(value: object, expected: Mapping[OutputFormat, st
 
 
 def test_statevec_draw() -> None:
-    bell = Statevec([2**-0.5, 0, 0, 2**-0.5])
+    bell = Statevector([2**-0.5, 0, 0, 2**-0.5])
     # A magnitude shared by every amplitude is factored out.
     assert bell.draw(OutputFormat.Unicode) == "√2/2(|00⟩ + |11⟩)"
     assert bell.draw(OutputFormat.ASCII) == "sqrt(2)/2(|00> + |11>)"
@@ -285,7 +285,7 @@ def test_statevec_draw() -> None:
 
 
 def test_statevec_draw_single_basis_state() -> None:
-    state = Statevec(data=[BasicStates.ZERO, BasicStates.ONE])
+    state = Statevector(data=[BasicStates.ZERO, BasicStates.ONE])
     assert state.draw(OutputFormat.Unicode) == "|01⟩"
     # LaTeX ket notation for a bare basis state.
     assert state.draw(OutputFormat.LaTeX) == r"\ket{01}"
@@ -301,15 +301,15 @@ def test_density_matrix_draw() -> None:
 
 def test_statevec_draw_negative_and_parenthesized() -> None:
     # The shared 1/2 magnitude is factored out, with the signs kept inside the parentheses.
-    neg = Statevec([0.5, -0.5, 0.5, 0.5])
+    neg = Statevector([0.5, -0.5, 0.5, 0.5])
     assert neg.draw(OutputFormat.Unicode) == "1/2(|00⟩ - |01⟩ + |10⟩ + |11⟩)"
     # A compound (cartesian) amplitude is parenthesized before the ket. Build from a
     # numpy array so the amplitudes are ``numpy.complex128`` (Python's ``complex`` only
     # gained ``__complex__`` in 3.11, so a bare ``complex`` is rejected on 3.10).
-    binomial = Statevec(np.array([0.5 + 0.25j, (1 - abs(0.5 + 0.25j) ** 2) ** 0.5]))
+    binomial = Statevector(np.array([0.5 + 0.25j, (1 - abs(0.5 + 0.25j) ** 2) ** 0.5]))
     assert binomial.draw(OutputFormat.Unicode) == "(1/2 + 1/4i)|0⟩ + √11/4|1⟩"
     # A unit negative amplitude collapses to a bare `-|ket⟩`.
-    assert Statevec([-1.0, 0.0]).draw(OutputFormat.Unicode) == "-|0⟩"
+    assert Statevector([-1.0, 0.0]).draw(OutputFormat.Unicode) == "-|0⟩"
 
 
 def test_complex_to_str_precision_is_configurable() -> None:
@@ -338,11 +338,12 @@ def test_density_matrix_draw_rtol() -> None:
 def test_statevec_draw_factor_relative_phase() -> None:
     # A modulus shared up to a relative phase is still factored, with the phase kept
     # inside the parentheses.
-    assert Statevec(data=BasicStates.PLUS).draw(OutputFormat.Unicode) == "√2/2(|0⟩ + |1⟩)"
-    assert Statevec(data=BasicStates.PLUS_I).draw(OutputFormat.Unicode) == "√2/2(|0⟩ + i|1⟩)"
-    assert Statevec(data=BasicStates.MINUS_I).draw(OutputFormat.Unicode) == "√2/2(|0⟩ - i|1⟩)"
+    assert Statevector(data=BasicStates.PLUS).draw(OutputFormat.Unicode) == "√2/2(|0⟩ + |1⟩)"
+    assert Statevector(data=BasicStates.PLUS_I).draw(OutputFormat.Unicode) == "√2/2(|0⟩ + i|1⟩)"
+    assert Statevector(data=BasicStates.MINUS_I).draw(OutputFormat.Unicode) == "√2/2(|0⟩ - i|1⟩)"
     assert (
-        Statevec(data=BasicStates.PLUS_I).draw(OutputFormat.LaTeX) == r"\frac{\sqrt{2}}{2}(\ket{0} + \mathrm{i}\ket{1})"
+        Statevector(data=BasicStates.PLUS_I).draw(OutputFormat.LaTeX)
+        == r"\frac{\sqrt{2}}{2}(\ket{0} + \mathrm{i}\ket{1})"
     )
 
 
@@ -394,7 +395,7 @@ def test_draw_max_denominator() -> None:
     assert dm.draw(OutputFormat.Unicode, max_denominator=1) == "[ 0.5  0.5 ]\n[ 0.5  0.5 ]"
     # Same effect on the statevector draw: √2/2 needs max_denominator >= 2 for the
     # squared form 1/2 to be representable; below that it falls back to 0.7071.
-    sv = Statevec([2**-0.5, 2**-0.5])
+    sv = Statevector([2**-0.5, 2**-0.5])
     assert sv.draw(OutputFormat.Unicode) == "√2/2(|0⟩ + |1⟩)"
     assert sv.draw(OutputFormat.Unicode, max_denominator=2) == "√2/2(|0⟩ + |1⟩)"
     assert sv.draw(OutputFormat.Unicode, max_denominator=1) == "0.7071(|0⟩ + |1⟩)"
@@ -413,7 +414,7 @@ def test_complex_to_str_edge_cases() -> None:
 
 def test_statevec_draw_all_amplitudes_dropped() -> None:
     # A tolerance large enough to drop every amplitude prints the statevector as "0".
-    bell = Statevec([2**-0.5, 0, 0, 2**-0.5])
+    bell = Statevector([2**-0.5, 0, 0, 2**-0.5])
     assert bell.draw(OutputFormat.Unicode, atol=1.0) == "0"
 
 
@@ -421,5 +422,5 @@ def test_statevec_draw_non_uniform_not_factored() -> None:
     # Amplitudes with different magnitudes are not factored; each term keeps its coefficient.
     # The negative second amplitude also exercises the ` - ` separator in the term-by-term
     # fallback (the factoring path handles the uniform-magnitude negative case separately).
-    state = Statevec([math.sqrt(3) / 2, -0.5])
+    state = Statevector([math.sqrt(3) / 2, -0.5])
     assert state.draw(OutputFormat.Unicode) == "√3/2|0⟩ - 1/2|1⟩"
