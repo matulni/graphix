@@ -107,7 +107,7 @@ class ReverseDependency:
             install_target=".[dev]",
             branch="rename_methods",
         ),
-        ReverseDependency("https://github.com/matulni/graphix-mqtbench", branch="minimal"),
+        ReverseDependency("https://github.com/matulni/graphix-mqtbench", branch="rename_methods"),
     ],
 )
 def tests_reverse_dependencies(session: Session, package: ReverseDependency) -> None:
