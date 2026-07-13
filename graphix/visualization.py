@@ -215,9 +215,15 @@ class GraphVisualizer:
         -------
         GraphVisualizer
         """
-        if not og.graph.nodes:
-            raise ValueError("Open graph is empty.")
         options = VisualizationOptions(**kwargs)
+        if not og.graph.nodes:
+            return GraphVisualizer(
+                og=og,
+                pos={},
+                edge_paths={},
+                options=options,
+                _source=_Source.OG,
+            )
         pos = _compute_positions(og)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(og, pos)
@@ -247,9 +253,15 @@ class GraphVisualizer:
         -------
         GraphVisualizer
         """
-        if not flow.og.graph.nodes:
-            raise ValueError("Open graph is empty.")
         options = VisualizationOptions(**kwargs)
+        if not flow.og.graph.nodes:
+            return GraphVisualizer(
+                og=flow.og,
+                pos={},
+                edge_paths={},
+                options=options,
+                _source=_Source.Flow,
+            )
         pos = _compute_positions(flow)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(flow.og, pos)
@@ -284,9 +296,15 @@ class GraphVisualizer:
         -------
         GraphVisualizer
         """
-        if not xz_corr.og.graph.nodes:
-            raise ValueError("Open graph is empty.")
         options = VisualizationOptions(**kwargs)
+        if not xz_corr.og.graph.nodes:
+            return GraphVisualizer(
+                og=xz_corr.og,
+                pos={},
+                edge_paths={},
+                options=options,
+                _source=_Source.XZCorr,
+            )
         pos = _compute_positions(xz_corr)
         pos = _scale_positions(pos, options.node_distance)
         edge_paths = _compute_edge_paths(xz_corr.og, pos)
@@ -350,6 +368,10 @@ class GraphVisualizer:
         for node in self.og.graph.nodes():
             x_pos.add(self.pos[node][0])
             y_pos.add(self.pos[node][1])
+
+        # Empty graphs
+        if not x_pos or not y_pos:
+            return (2.0, 2.0)
 
         width = len(x_pos) * 0.8
         height = len(y_pos)
@@ -566,6 +588,8 @@ class GraphVisualizer:
 
         Legend is customized depending on the object being plotted (flow or XZ-corections) indicated in ``self._source``.
         """
+        if not self.og.graph.nodes:
+            return
         plt.scatter(
             [],
             [],
