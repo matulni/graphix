@@ -224,26 +224,6 @@ class Statevec(DenseState):
         r"""Return a view of the meaningful elements in ``self._psi``.
 
         These are the first ``2**self.nqubit`` elements.
-
-        Parameters
-        ----------
-        nqubit : int
-            The number of qubits to add to the state vector.
-
-        data : Data, optional
-            The state in which to initialize the newly added nodes.
-
-            - If a single basic state is provided, all new nodes are initialized in that state.
-            - If a list of basic states is provided, it must match the length of ``nodes``, and
-              each node is initialized with its corresponding state.
-            - A single-qubit state vector will be broadcast to all nodes.
-            - A multi-qubit state vector of dimension :math:`2^n`, where :math:`n = \mathrm{len}(nodes)`,
-              initializes the new nodes jointly.
-            - The type of nodes to be added is inferred from the type of the existing ``Statevec``.
-
-        Notes
-        -----
-        Previously existing nodes remain unchanged.
         """
         size_valid_psi = 1 << self.nqubit  # 2**self.nqubit
         return self._psi[:size_valid_psi]
