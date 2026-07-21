@@ -1320,7 +1320,7 @@ def _corrections_to_dag(
 
     Notes
     -----
-    See :func:`XZCorrections.dag`.
+    See :func:`XZCorrections.to_dag`.
     """
     relations = (
         (measured_node, corrected_node)

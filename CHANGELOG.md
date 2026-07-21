@@ -105,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - #557: Homogeneize namespace. See commit text or COMPATIBILITY.md for a detailed renaming list. Fixed the following convention:
   - `.to_<object>` for transformations that can only return `object` or raise an exception. Equivalently, we use `.from_<object>` for constructors.
   - `.to_<object>_or_none` for transformations that can return `object` or `None`. Equivalently, we use `.from_<object>_or_none` for constructors.
-  - accessor methods use nounds instead of verb + noun. Example: `Pattern.max_degree` instead of `Pattern.compute_max_degree`.
+  - accessor methods use nouns instead of verb + noun. Example: `Pattern.max_degree` instead of `Pattern.compute_max_degree`.
 
 ## [0.3.5] - 2026-03-26
 
