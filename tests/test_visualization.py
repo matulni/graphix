@@ -199,6 +199,13 @@ def test_og() -> None:
     pattern.draw(annotations=None)
 
 
+@pytest.mark.usefixtures("mock_plot")
+@pytest.mark.parametrize("annotations", [None, DrawPatternAnnotations.Flow, DrawPatternAnnotations.XZCorrections])
+def test_empty(annotations: DrawPatternAnnotations | None) -> None:
+    pattern = Pattern()
+    pattern.draw(annotations=annotations)
+
+
 # Compare with baseline/test_draw_graph_reference.png
 # Update baseline by running: pytest --mpl-generate-path=tests/baseline
 @pytest.mark.usefixtures("mock_plot")
