@@ -27,7 +27,7 @@ Graphix does not guarantee backwards compatibility between 0.x version releases.
     | `StandardizedPattern.extract_xzcorrections` | `StandardizedPattern.to_xzcorrections` |
     | `XZCorrections.to_causal_flow` | `XZCorrections.to_causalflow` |
     | `XZCorrections.to_pauli_flow` | `XZCorrections.to_pauliflow` |
-    | `XZCorrections.extract_dag` | `XZCorrections.dag` |
+    | `XZCorrections.extract_dag` | `XZCorrections.to_dag` |
     | `PauliFlow.try_from_correction_matrix` | `PauliFlow.from_correctionmatrix_or_none` |
     | `PauliFlow.to_corrections` | `PauliFlow.to_xzcorrections` |
     | `GFlow.to_corrections` | `GFlow.to_xzcorrections` |
