@@ -350,7 +350,7 @@ class XZCorrections(Generic[_AM_co]):
         assert set(total_order) == set(self.og.graph.nodes) - set(self.og.output_nodes)
         return total_order
 
-    def dag(self) -> nx.DiGraph[int]:
+    def to_dag(self) -> nx.DiGraph[int]:
         """Extract the directed graph induced by the XZ-corrections.
 
         Returns
