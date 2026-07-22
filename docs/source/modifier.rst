@@ -50,8 +50,6 @@ Pattern Manipulation
 
     .. automethod:: is_standard
 
-    .. automethod:: graph
-
     .. automethod:: nodes
 
     .. automethod:: to_causalflow
