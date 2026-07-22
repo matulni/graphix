@@ -1546,7 +1546,7 @@ class Pattern:
 
         Notes
         -----
-        If ``flow_from_pattern==True`` but the pattern is not compatible with a causal flow, gflow, or Pauli flow, an attempt to be extract the flow from the underlying open graph will be made while warning the user.
+        If ``flow_from_pattern==True`` but the pattern is not compatible with a causal flow, gflow, or Pauli flow, an attempt to extract the flow from the underlying open graph will be made while warning the user.
         """
         if annotations is None:
             og = self.to_opengraph()
