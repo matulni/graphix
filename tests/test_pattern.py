@@ -1256,7 +1256,7 @@ class TestMCOps:
             circuit.rx(v, ANGLE_PI / 9)
 
         pattern = circuit.transpile().pattern
-        graph = pattern.graph()
+        graph = pattern.to_opengraph().graph
 
         graph_ref: nx.Graph[int] = nx.Graph()
         graph_ref.add_nodes_from(range(27))

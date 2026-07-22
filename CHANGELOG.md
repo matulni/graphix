@@ -107,6 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.to_<object>_or_none` for transformations that can return `object` or `None`. Equivalently, we use `.from_<object>_or_none` for constructors.
   - accessor methods use nouns instead of verb + noun. Example: `Pattern.max_degree` instead of `Pattern.compute_max_degree`.
 
+- #571: Removed method `Pattern.graph`
+
+
 ## [0.3.5] - 2026-03-26
 
 ### Added

@@ -1192,34 +1192,13 @@ class Pattern:
         max_degree : int
             max degree of a pattern
         """
-        graph = self.graph()
+        graph = self.to_opengraph().graph
         degree = graph.degree()
         assert isinstance(degree, nx.classes.reportviews.DiDegreeView)
         degrees = dict(degree).values()
         if len(degrees) == 0:
             return 0
         return int(max(degrees))
-
-    def graph(self) -> nx.Graph[int]:
-        """Return the graph state from the command sequence, extracted from ``N`` and ``E`` commands.
-
-        Returns
-        -------
-        graph_state: nx.Graph[int]
-        """
-        graph: nx.Graph[int] = nx.Graph()
-        graph.add_nodes_from(self.input_nodes)
-        for cmd in self.__seq:
-            match cmd.kind:
-                case CommandKind.N:
-                    graph.add_node(cmd.node)
-                case CommandKind.E:
-                    u, v = cmd.nodes
-                    if graph.has_edge(u, v):
-                        graph.remove_edge(u, v)
-                    else:
-                        graph.add_edge(u, v)
-        return graph
 
     def nodes(self) -> set[int]:
         """Return the set of nodes of the pattern."""
@@ -1237,8 +1216,15 @@ class Pattern:
         isolated_nodes : set[int]
             set of the isolated nodes
         """
-        graph = self.graph()
-        return {node for node, d in graph.degree if d == 0}
+        nodes = set(self.input_nodes)
+        for cmd in self.__seq:
+            match cmd.kind:
+                case CommandKind.N:
+                    nodes.add(cmd.node)
+                case CommandKind.E:
+                    u, v = cmd.nodes
+                    nodes -= {u, v}
+        return nodes
 
     def to_opengraph(self) -> OpenGraph[Measurement]:
         r"""Extract the underlying resource-state open graph from the pattern.
