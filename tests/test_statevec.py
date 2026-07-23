@@ -529,7 +529,7 @@ class TestStatevectorBackend:
 
         with pytest.raises(TypeError):
             # Branch selector is keyword only (enforced by dataclass sentinel)
-            StatevectorBackend(sv, bs)  # type: ignore[misc, arg-type]
+            StatevectorBackend(sv, bs)  # type: ignore[call-arg, arg-type]
 
         backend = StatevectorBackend(sv, branch_selector=bs)
 

@@ -63,7 +63,7 @@ class Statevector(DenseState):
         Maximum Hilbert space size allowed for internal computations. It determines
         the size of ``self._psi``. For circuit simulations, it corresponds to the number
         of qubits, while for pattern simulations it corresponds to the pattern's
-        maximum space. The method :meth:`Statevec.ensure_capacity` allows to increase
+        maximum space. The method :meth:`Statevector.ensure_capacity` allows to increase
         this number.
 
     Notes
@@ -95,12 +95,12 @@ class Statevector(DenseState):
         - a single :class:`graphix.states.State` (classical description of a quantum state)
         - an iterable of :class:`graphix.states.State` objects
         - an iterable of scalars (a :math:`2^n` numerical statevector)
-        - a single :class:`graphix.sim.statevec.Statevec`
+        - a single :class:`graphix.sim.statevec.Statevector`
 
         If ``nqubit`` is not provided, it is inferred from ``data``.
         If ``max_qubits`` is not provided, it is set to match the inferred ``max_qubits``.
         If only one :class:`graphix.states.State` is provided and ``nqubit`` is a valid integer, the statevector is initialized in the tensor product state.
-        If a class:`graphix.sim.statevec.Statevec` is provided, a copy is returned.
+        If a class:`graphix.sim.statevec.Statevector` is provided, a copy is returned.
         Consistency between provided ``nqubit``, ``max_qubits`` and ``data`` is checked.
 
         Parameters
@@ -755,7 +755,7 @@ class Statevector(DenseState):
 def _format_encoding(nqubit: int, i: int, encoding: _ENCODING) -> str:
     """Format the i-th basis vector as a ket.
 
-    See :meth:`Statevec.to_dict` for additional details.
+    See :meth:`Statevector.to_dict` for additional details.
     """
     display_width = nqubit
     output = f"{i:0{display_width}b}"
@@ -816,7 +816,7 @@ class StatevectorBackend(DenseStateBackend[Statevector]):
         ----------
         max_qubits : int
             Maximum number of qubits supported by the statevector. For pattern simulation this corresponds to ``Pattern.max_space()``.
-        state: Statevec | None = None
+        state: Statevector | None = None
             Initial backend state. If ``None``, the backend is initialized
             with a 0-dimensional statevector (scalar ``1``).
         **kwargs
