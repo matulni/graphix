@@ -47,7 +47,7 @@ are multi-threaded. For lower counts, the overhead does not compensate paralleli
 This number was determined empirically and it may be platform dependent."""
 
 
-class Statevec(DenseState):
+class Statevector(DenseState):
     """Statevector object.
 
     Attributes
@@ -123,7 +123,7 @@ class Statevec(DenseState):
         if max_qubits is not None and max_qubits < 0:
             raise ValueError("`max_qubits` must be a non-negative integer.")
 
-        if isinstance(data, Statevec):
+        if isinstance(data, Statevector):
             if nqubit is not None and len(data.flatten()) != 1 << nqubit:
                 raise ValueError(
                     f"Inconsistent parameters between nqubit = {nqubit} and the inferred number of qubit = {len(data.flatten())}."
@@ -176,7 +176,7 @@ class Statevec(DenseState):
             ) -> npt.NDArray[np.complex128]:
                 if not isinstance(s, states.State):
                     raise TypeError("Data should be an homogeneous sequence of states.")
-                return s.to_statevector()
+                return s.to_statevector_numpy()
 
             psi = functools.reduce(
                 lambda m0, m1: np.kron(m0, m1).astype(np.complex128, copy=False),
@@ -217,7 +217,7 @@ class Statevec(DenseState):
 
     def __str__(self) -> str:
         """Return a string description."""
-        return self.draw()
+        return f"Statevector object with psi/ {self.psi} and {self.nqubit} qubits."
 
     @property
     def psi(self) -> npt.NDArray[np.complex128]:
@@ -296,7 +296,7 @@ class Statevec(DenseState):
             _add_default_node_jit(self._psi, self.nqubit)
             self._nqubit += 1
         else:
-            sv_to_add = Statevec(nqubit=nqubit, data=data)
+            sv_to_add = Statevector(nqubit=nqubit, data=data)
             self.tensor(sv_to_add)
 
     @override
@@ -410,7 +410,7 @@ class Statevec(DenseState):
         This method assumes that quantum state represented by ``self.psi`` is normalized.
         See the class docstring for details.
         """
-        sv = Statevec(data=self.flatten())
+        sv = Statevector(data=self.flatten())
         sv.evolve(op, qubits)
         return complex(np.dot(self.flatten().conjugate(), sv.flatten()))
 
@@ -507,14 +507,14 @@ class Statevec(DenseState):
         """
         _swap_jit(self._psi, self.nqubit, *qubits)
 
-    def tensor(self, other: Statevec) -> None:
+    def tensor(self, other: Statevector) -> None:
         r"""Tensor product state with other qubits.
 
         Results in ``self`` :math:`\otimes` ``other``.
 
         Parameters
         ----------
-        other : :class:`graphix.sim.statevec.Statevec`
+        other : :class:`graphix.sim.statevec.Statevector`
             Statevector to be tensored with ``self``.
 
         Notes
@@ -551,14 +551,14 @@ class Statevec(DenseState):
         len_psi = len(self.psi)
         self._psi[:len_psi] = psi_tensor_perm.reshape(len_psi)
 
-    def fidelity(self, other: Statevec) -> float:
+    def fidelity(self, other: Statevector) -> float:
         r"""Calculate the fidelity against another statevector.
 
         The fidelity is defined as :math:`|\langle\psi_1|\psi_2\rangle|^2`.
 
         Parameters
         ----------
-        other : :class:`graphix.sim.statevec.Statevec`
+        other : :class:`graphix.sim.statevec.Statevector`
             Statevector to compare with.
 
         Returns
@@ -569,14 +569,14 @@ class Statevec(DenseState):
         inner = np.dot(self.flatten().conjugate(), other.flatten())
         return float(np.abs(inner) ** 2)
 
-    def isclose(self, other: Statevec, *, rtol: float = 1e-09, atol: float = 0.0) -> bool:
+    def isclose(self, other: Statevector, *, rtol: float = 1e-09, atol: float = 0.0) -> bool:
         """Check if two quantum states are equal up to global phase.
 
         Two states are considered close if their fidelity is close to 1.
 
         Parameters
         ----------
-        other : :class:`graphix.sim.statevec.Statevec`
+        other : :class:`graphix.sim.statevec.Statevector`
             Statevector to compare with.
         rtol : float
             Relative tolerance for :func:`math.isclose`.
@@ -636,8 +636,8 @@ class Statevec(DenseState):
         Example
         -------
         >>> from graphix.states import BasicStates
-        >>> from graphix.sim.statevec import Statevec
-        >>> sv = Statevec(data=[BasicStates.ZERO, BasicStates.ONE])
+        >>> from graphix.sim.statevec import Statevector
+        >>> sv = Statevector(data=[BasicStates.ZERO, BasicStates.ONE])
         >>> sv.to_dict()
         {'01': np.complex128(1+0j)}
         >>> sv.to_dict(encoding="LSB")
@@ -765,7 +765,7 @@ def _format_encoding(nqubit: int, i: int, encoding: _ENCODING) -> str:
 
 
 @dataclass(frozen=True)
-class StatevectorBackend(DenseStateBackend[Statevec]):
+class StatevectorBackend(DenseStateBackend[Statevector]):
     """Numba JIT-compiled MBQC statevector backend simulator based on Ref. [1].
 
     See Also
@@ -790,7 +790,7 @@ class StatevectorBackend(DenseStateBackend[Statevec]):
     [1] McGuffin, M. J., Robert J-M., and Ikeda K. "How to Write a Simulator for Quantum Circuits from Scratch: A Tutorial.", 2025 (arXiv:2506.08142).
     """
 
-    state: Statevec = dataclasses.field(init=True, default_factory=lambda: Statevec(nqubit=0))
+    state: Statevector = dataclasses.field(init=True, default_factory=lambda: Statevector(nqubit=0))
 
     def __post_init__(self) -> None:
         """Validate backend configuration.
@@ -808,7 +808,7 @@ class StatevectorBackend(DenseStateBackend[Statevec]):
 
     @classmethod
     def with_capacity(
-        cls, max_qubits: int, state: Statevec | None = None, **kwargs: Unpack[DenseStateBackendKwargs]
+        cls, max_qubits: int, state: Statevector | None = None, **kwargs: Unpack[DenseStateBackendKwargs]
     ) -> Self:
         """Initialize the backend with preallocated statevector capacity.
 
@@ -829,7 +829,7 @@ class StatevectorBackend(DenseStateBackend[Statevec]):
             Backend instance with capacity for up to ``max_qubits`` qubits.
         """
         state_init = (
-            Statevec(nqubit=0, max_qubits=max_qubits) if state is None else Statevec(state, max_qubits=max_qubits)
+            Statevector(nqubit=0, max_qubits=max_qubits) if state is None else Statevector(state, max_qubits=max_qubits)
         )
         return cls(state_init, **kwargs)
 

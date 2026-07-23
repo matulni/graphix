@@ -18,7 +18,7 @@ from graphix.ops import Ops
 from graphix.pauli import Pauli
 from graphix.random_objects import rand_state_vector, rand_unit
 from graphix.sim.base_backend import NodeIndex
-from graphix.sim.statevec import NUM_QUBIT_PARALLEL, Statevec, StatevectorBackend
+from graphix.sim.statevec import NUM_QUBIT_PARALLEL, Statevector, StatevectorBackend
 from graphix.states import BasicStates, PlanarState
 from graphix.transpiler import Circuit
 
@@ -44,7 +44,7 @@ def generate_rnd_data(rng: Generator, nqubits: int) -> npt.NDArray[np.complex128
     return data
 
 
-class TestStatevec:
+class TestStatevector:
     @pytest.mark.parametrize(
         ("state", "data_ref"),
         [
@@ -57,19 +57,19 @@ class TestStatevec:
         ],
     )
     def test_init_basic_states(self, state: State, data_ref: npt.NDArray[np.complex128]) -> None:
-        sv = Statevec(data=state)
+        sv = Statevector(data=state)
         assert np.allclose(sv.flatten(), data_ref)
 
     @pytest.mark.parametrize("nqubit", range(5))
     def test_init_random_state(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv = Statevec(data)
+        sv = Statevector(data)
         assert np.allclose(sv.flatten(), data)
 
     def test_init_preallocation(self) -> None:
         nqubit = 2
         max_qubits = 5
-        sv = Statevec(data=[BasicStates.PLUS, BasicStates.ZERO], nqubit=nqubit, max_qubits=max_qubits)
+        sv = Statevector(data=[BasicStates.PLUS, BasicStates.ZERO], nqubit=nqubit, max_qubits=max_qubits)
 
         assert np.allclose(sv.flatten(), np.array([1, 0, 1, 0]) / np.sqrt(2))
         assert sv.nqubit == nqubit
@@ -77,10 +77,10 @@ class TestStatevec:
         assert len(sv._psi) == 2**max_qubits
 
     @pytest.mark.parametrize("nqubit", range(5))
-    def test_init_statevec(self, fx_rng: Generator, nqubit: int) -> None:
+    def test_init_statevector(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv_1 = Statevec(data)
-        sv_2 = Statevec(sv_1)
+        sv_1 = Statevector(data)
+        sv_2 = Statevector(sv_1)
         assert np.allclose(sv_1.psi, sv_2.psi)
         assert sv_1.nqubit == sv_2.nqubit
         assert sv_1.max_qubits == sv_2.max_qubits
@@ -88,8 +88,8 @@ class TestStatevec:
     @pytest.mark.parametrize("nqubit", range(5))
     def test_init_statevec_max_qubits(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv_1 = Statevec(data)
-        sv_2 = Statevec(data=sv_1, max_qubits=nqubit + 1)
+        sv_1 = Statevector(data)
+        sv_2 = Statevector(data=sv_1, max_qubits=nqubit + 1)
         assert np.allclose(sv_1.flatten(), sv_2.flatten())
         assert sv_1.nqubit == sv_2.nqubit
         assert sv_1.max_qubits + 1 == sv_2.max_qubits
@@ -100,49 +100,49 @@ class TestStatevec:
         rand_vec = fx_rng.random(length) + 1j * fx_rng.random(length)
         rand_vec /= np.sqrt(np.sum(np.abs(rand_vec) ** 2))
         with pytest.raises(ValueError):
-            Statevec(data=rand_vec)
+            Statevector(data=rand_vec)
 
     # fail: different qubit than number of qubits inferred from data
     @pytest.mark.parametrize("nqubit", [2, 4])
     def test_init_dim_mismatch_fail(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
         with pytest.raises(ValueError):
-            Statevec(nqubit=3, data=data)
+            Statevector(nqubit=3, data=data)
 
     # fail: not normalized
     def test_init_norm_fail(self, fx_rng: Generator) -> None:
         data = 5 * generate_rnd_data(fx_rng, 3)
         with pytest.raises(ValueError):
-            Statevec(data=data)
+            Statevector(data=data)
 
     # fail: max qubits smaller than number of qubits
     def test_init_max_qubits_fail(self) -> None:
         nqubit = 4
         max_qubits = 3
         with pytest.raises(ValueError):
-            Statevec(nqubit=nqubit, max_qubits=max_qubits)
+            Statevector(nqubit=nqubit, max_qubits=max_qubits)
 
     # fail: incorrect number of qubits
     @pytest.mark.parametrize("nqubit", range(5))
     def test_init_statevec_fail(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv_1 = Statevec(data)
+        sv_1 = Statevector(data)
         with pytest.raises(ValueError):
-            Statevec(data=sv_1, nqubit=nqubit + 1)
+            Statevector(data=sv_1, nqubit=nqubit + 1)
 
     # fail: incorrect max_qubits qubits
     @pytest.mark.parametrize("nqubit", range(5))
     def test_init_statevec_max_qubits_fail(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv_1 = Statevec(data=data, max_qubits=6)
+        sv_1 = Statevector(data=data, max_qubits=6)
         with pytest.raises(ValueError):
-            Statevec(data=sv_1, max_qubits=nqubit - 1)
+            Statevector(data=sv_1, max_qubits=nqubit - 1)
 
     @pytest.mark.parametrize("nqubit", range(5))
     def test_init_statevec_max_qubits_truncate(self, fx_rng: Generator, nqubit: int) -> None:
         data = generate_rnd_data(fx_rng, nqubit)
-        sv_1 = Statevec(data=data, max_qubits=6)
-        sv_2 = Statevec(data=sv_1, max_qubits=nqubit + 1)
+        sv_1 = Statevector(data=data, max_qubits=6)
+        sv_2 = Statevector(data=sv_1, max_qubits=nqubit + 1)
         assert sv_2.nqubit == nqubit
         assert sv_2.max_qubits == nqubit + 1
         assert len(sv_2._psi) == 1 << (nqubit + 1)
@@ -151,38 +151,38 @@ class TestStatevec:
     @pytest.mark.parametrize(
         ("sv", "edge", "data_ref"),
         [
-            (Statevec(data=BasicStates.ZERO, nqubit=2), (0, 1), np.array([1, 0, 0, 0])),
-            (Statevec(data=[BasicStates.PLUS, BasicStates.PLUS]), (0, 1), np.array([1, 1, 1, -1]) / 2),
-            (Statevec(data=[BasicStates.ONE, BasicStates.MINUS]), (0, 1), np.array([0, 0, 1, 1]) / np.sqrt(2)),
+            (Statevector(data=BasicStates.ZERO, nqubit=2), (0, 1), np.array([1, 0, 0, 0])),
+            (Statevector(data=[BasicStates.PLUS, BasicStates.PLUS]), (0, 1), np.array([1, 1, 1, -1]) / 2),
+            (Statevector(data=[BasicStates.ONE, BasicStates.MINUS]), (0, 1), np.array([0, 0, 1, 1]) / np.sqrt(2)),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 (0, 2),
                 np.array([1, 0, 0, 0, 0, 0, 0, -1]) / np.sqrt(2),
             ),
         ],
     )
-    def test_entangle(self, sv: Statevec, edge: tuple[int, int], data_ref: npt.NDArray[np.complex128]) -> None:
+    def test_entangle(self, sv: Statevector, edge: tuple[int, int], data_ref: npt.NDArray[np.complex128]) -> None:
         sv.entangle(edge)
         assert np.allclose(sv.flatten(), data_ref)
 
     @pytest.mark.parametrize(
         ("sv", "q", "op", "data_ref"),
         [
-            (Statevec(data=BasicStates.ZERO, nqubit=2), 0, Clifford.X.matrix, np.array([0, 0, 1, 0])),
+            (Statevector(data=BasicStates.ZERO, nqubit=2), 0, Clifford.X.matrix, np.array([0, 0, 1, 0])),
             (
-                Statevec(data=[BasicStates.PLUS, BasicStates.PLUS]),
+                Statevector(data=[BasicStates.PLUS, BasicStates.PLUS]),
                 1,
                 Clifford.H.matrix,
                 np.array([1, 0, 1, 0]) / np.sqrt(2),
             ),
             (
-                Statevec(data=[BasicStates.PLUS, BasicStates.MINUS]),
+                Statevector(data=[BasicStates.PLUS, BasicStates.MINUS]),
                 0,
                 np.array([[1, 0], [0, np.exp(0.25j * np.pi)]]),
                 np.array([1, -1, np.exp(0.25j * np.pi), -np.exp(0.25j * np.pi)]) / 2,
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 1,
                 Clifford.Z.matrix,
                 np.array([1, 0, 0, 0, 0, 0, 0, -1]) / np.sqrt(2),
@@ -190,7 +190,7 @@ class TestStatevec:
         ],
     )
     def test_evolve_single(
-        self, sv: Statevec, q: int, op: npt.NDArray[np.complex128], data_ref: npt.NDArray[np.complex128]
+        self, sv: Statevector, q: int, op: npt.NDArray[np.complex128], data_ref: npt.NDArray[np.complex128]
     ) -> None:
         sv.evolve_single(op, q)
         assert np.allclose(sv.flatten(), data_ref)
@@ -198,16 +198,16 @@ class TestStatevec:
     @pytest.mark.parametrize(
         ("sv", "q", "op", "exp_ref"),
         [
-            (Statevec(data=BasicStates.ZERO, nqubit=2), 0, Clifford.X.matrix, 0),
-            (Statevec(data=[BasicStates.PLUS, BasicStates.PLUS]), 1, Clifford.H.matrix, 1 / np.sqrt(2)),
+            (Statevector(data=BasicStates.ZERO, nqubit=2), 0, Clifford.X.matrix, 0),
+            (Statevector(data=[BasicStates.PLUS, BasicStates.PLUS]), 1, Clifford.H.matrix, 1 / np.sqrt(2)),
             (
-                Statevec(data=[BasicStates.PLUS, BasicStates.MINUS]),
+                Statevector(data=[BasicStates.PLUS, BasicStates.MINUS]),
                 0,
                 np.array([[1, 0], [0, np.exp(0.25j * np.pi)]]),
                 (1 + np.exp(0.25j * np.pi)) / 2,
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 1,
                 Clifford.Z.matrix,
                 0,
@@ -215,13 +215,13 @@ class TestStatevec:
         ],
     )
     def test_expectation_single(
-        self, sv: Statevec, q: int, op: npt.NDArray[np.complex128], exp_ref: np.complex128
+        self, sv: Statevector, q: int, op: npt.NDArray[np.complex128], exp_ref: np.complex128
     ) -> None:
         assert np.isclose(sv.expectation_single(op, q), exp_ref)
 
     def test_add_nodes(self, fx_rng: Generator) -> None:
         max_qubits = 5
-        sv_test = Statevec(nqubit=0, max_qubits=max_qubits)
+        sv_test = Statevector(nqubit=0, max_qubits=max_qubits)
         psi_ref = np.array([1.0 + 0.0j])
 
         for _ in range(max_qubits):  # Add a node at each iteration
@@ -232,7 +232,7 @@ class TestStatevec:
 
     def test_add_nodes_beyond_max_qubits(self, fx_rng: Generator) -> None:
         max_qubits = 3
-        sv_test = Statevec(nqubit=max_qubits, max_qubits=max_qubits)
+        sv_test = Statevector(nqubit=max_qubits, max_qubits=max_qubits)
 
         # We create a reference to `psi` to ensure that array is not extended with np.ndarray.resize
         psi_ref = sv_test.psi  # noqa: F841
@@ -247,19 +247,19 @@ class TestStatevec:
     @pytest.mark.parametrize(
         ("sv", "q", "sv_ref"),
         [
-            (Statevec(data=BasicStates.ZERO, nqubit=2), 0, Statevec(data=BasicStates.ZERO, nqubit=1)),
-            (Statevec(data=[BasicStates.PLUS, BasicStates.PLUS]), 1, Statevec(data=BasicStates.PLUS, nqubit=1)),
-            (Statevec(data=[BasicStates.PLUS, BasicStates.MINUS]), 0, Statevec(data=BasicStates.MINUS, nqubit=1)),
-            (Statevec(data=[BasicStates.ZERO, BasicStates.ONE]), 0, Statevec(data=BasicStates.ONE, nqubit=1)),
+            (Statevector(data=BasicStates.ZERO, nqubit=2), 0, Statevector(data=BasicStates.ZERO, nqubit=1)),
+            (Statevector(data=[BasicStates.PLUS, BasicStates.PLUS]), 1, Statevector(data=BasicStates.PLUS, nqubit=1)),
+            (Statevector(data=[BasicStates.PLUS, BasicStates.MINUS]), 0, Statevector(data=BasicStates.MINUS, nqubit=1)),
+            (Statevector(data=[BasicStates.ZERO, BasicStates.ONE]), 0, Statevector(data=BasicStates.ONE, nqubit=1)),
             # In previous testcase, branch 1 is 0 (psi_10 == psi_11 == 0), and first element of branch 0 is 0 too (psi_00 == 0)!
             (
-                Statevec(data=[BasicStates.PLUS_I, BasicStates.ONE, BasicStates.PLUS]),
+                Statevector(data=[BasicStates.PLUS_I, BasicStates.ONE, BasicStates.PLUS]),
                 1,
-                Statevec(data=[BasicStates.PLUS_I, BasicStates.PLUS], nqubit=2),
+                Statevector(data=[BasicStates.PLUS_I, BasicStates.PLUS], nqubit=2),
             ),
         ],
     )
-    def test_project_qubit(self, sv: Statevec, q: int, sv_ref: Statevec) -> None:
+    def test_project_qubit(self, sv: Statevector, q: int, sv_ref: Statevector) -> None:
         # This test mimics the behavior of former `remove_qubit`.
         op = np.eye(2, dtype=np.complex128)
         sv.project_qubit(op, q)
@@ -280,9 +280,9 @@ class TestStatevec:
     def test_measurement_into_each_xyz_basis(self, state: PlanarState) -> None:
         n = 3
         k = 0
-        statevector = state.to_statevector()
+        statevector = state.to_statevector_numpy()
         m_op = np.outer(statevector, statevector.T.conjugate())
-        sv = Statevec(nqubit=n)
+        sv = Statevector(nqubit=n)
         sv.evolve_single(m_op, k)
 
         if state is BasicStates.MINUS:
@@ -291,51 +291,51 @@ class TestStatevec:
                 sv.project_qubit(m_op, k)
         else:
             sv.project_qubit(m_op, k)
-            sv2 = Statevec(nqubit=n - 1)
+            sv2 = Statevector(nqubit=n - 1)
             assert sv.isclose(sv2)
 
     @pytest.mark.parametrize(
         ("sv", "qargs", "op", "data_ref"),
         [
-            (Statevec(data=BasicStates.ZERO, nqubit=2), (0,), Clifford.X.matrix, np.array([0, 0, 1, 0])),
+            (Statevector(data=BasicStates.ZERO, nqubit=2), (0,), Clifford.X.matrix, np.array([0, 0, 1, 0])),
             (
-                Statevec(data=[BasicStates.PLUS, BasicStates.PLUS]),
+                Statevector(data=[BasicStates.PLUS, BasicStates.PLUS]),
                 (1,),
                 Clifford.H.matrix,
                 np.array([1, 0, 1, 0]) / np.sqrt(2),
             ),
             (
-                Statevec(data=[BasicStates.PLUS, BasicStates.MINUS]),
+                Statevector(data=[BasicStates.PLUS, BasicStates.MINUS]),
                 (0,),
                 np.array([[1, 0], [0, np.exp(0.25j * np.pi)]]),
                 np.array([1, -1, np.exp(0.25j * np.pi), -np.exp(0.25j * np.pi)]) / 2,
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 (1,),
                 Clifford.Z.matrix,
                 np.array([1, 0, 0, 0, 0, 0, 0, -1]) / np.sqrt(2),
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 (0, 1),
                 Ops.CNOT,
                 np.array([1, 0, 0, 0, 0, 1, 0, 0]) / np.sqrt(2),
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2)),
                 (0, 2),
                 Ops.CNOT,
                 np.array([1, 0, 0, 0, 0, 0, 1, 0]) / np.sqrt(2),
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2), max_qubits=5),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2), max_qubits=5),
                 (1, 2),
                 Ops.CNOT,
                 np.array([1, 0, 0, 0, 0, 0, 1, 0]) / np.sqrt(2),
             ),
             (
-                Statevec(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2), max_qubits=5),
+                Statevector(data=np.array([1, 0, 0, 0, 0, 0, 0, 1]) / np.sqrt(2), max_qubits=5),
                 (0, 1, 2),
                 Ops.CCX,
                 np.array([1, 0, 0, 0, 0, 0, 1, 0]) / np.sqrt(2),
@@ -343,7 +343,11 @@ class TestStatevec:
         ],
     )
     def test_evolve(
-        self, sv: Statevec, qargs: tuple[int, ...], op: npt.NDArray[np.complex128], data_ref: npt.NDArray[np.complex128]
+        self,
+        sv: Statevector,
+        qargs: tuple[int, ...],
+        op: npt.NDArray[np.complex128],
+        data_ref: npt.NDArray[np.complex128],
     ) -> None:
         sv.evolve(op, qargs)
         assert np.allclose(sv.flatten(), data_ref)
@@ -353,12 +357,12 @@ class TestStatevec:
         rng = Generator(fx_bg.jumped(jumps))
         nqubits = 4
         data = generate_rnd_data(rng, nqubits)
-        sv = Statevec(data=data)
+        sv = Statevector(data=data)
         op = rand_unit(8, rng)
 
         sv.evolve(op, (1, 2, 3))
         data_ref = np.kron(np.eye(2), op) @ data
-        sv_ref = Statevec(data_ref)
+        sv_ref = Statevector(data_ref)
 
         assert sv.isclose(sv_ref)
 
@@ -367,7 +371,7 @@ class TestStatevec:
         rng = Generator(fx_bg.jumped(jumps))
         nqubits = 4
         data = generate_rnd_data(rng, nqubits)
-        sv = Statevec(data=data)
+        sv = Statevector(data=data)
         op = rand_unit(4, rng)
 
         val_test = sv.expectation_value(op, (1, 2))
@@ -377,36 +381,41 @@ class TestStatevec:
     @pytest.mark.parametrize(
         ("sv1", "sv2", "fidelity"),
         [
-            (Statevec(data=BasicStates.PLUS), Statevec(data=BasicStates.PLUS), 1),
-            (Statevec(data=BasicStates.ZERO), Statevec(data=BasicStates.ONE), 0),
-            (Statevec(data=BasicStates.ZERO), Statevec(data=BasicStates.PLUS), 0.5),
-            (Statevec(data=BasicStates.PLUS), Statevec(data=np.array([1, 1]) / np.sqrt(2) * 1j), 1),
+            (Statevector(data=BasicStates.PLUS), Statevector(data=BasicStates.PLUS), 1),
+            (Statevector(data=BasicStates.ZERO), Statevector(data=BasicStates.ONE), 0),
+            (Statevector(data=BasicStates.ZERO), Statevector(data=BasicStates.PLUS), 0.5),
+            (Statevector(data=BasicStates.PLUS), Statevector(data=np.array([1, 1]) / np.sqrt(2) * 1j), 1),
         ],
     )
-    def test_fidelity(self, sv1: Statevec, sv2: Statevec, fidelity: float) -> None:
+    def test_fidelity(self, sv1: Statevector, sv2: Statevector, fidelity: float) -> None:
         assert sv1.fidelity(sv2) == pytest.approx(fidelity)
 
     @pytest.mark.parametrize(
         ("sv1", "sv2", "isclose", "atol"),
         [
-            (Statevec(data=BasicStates.PLUS), Statevec(data=BasicStates.PLUS), True, 0.0),
-            (Statevec(data=BasicStates.ZERO), Statevec(data=BasicStates.ONE), False, 0.0),
+            (Statevector(data=BasicStates.PLUS), Statevector(data=BasicStates.PLUS), True, 0.0),
+            (Statevector(data=BasicStates.ZERO), Statevector(data=BasicStates.ONE), False, 0.0),
             (
-                Statevec(data=BasicStates.PLUS),
-                Statevec(data=np.array([1, 1]) / np.sqrt(2) * np.exp(1j * 0.7)),
+                Statevector(data=BasicStates.PLUS),
+                Statevector(data=np.array([1, 1]) / np.sqrt(2) * np.exp(1j * 0.7)),
                 True,
                 0.0,
             ),
-            (Statevec(data=BasicStates.ZERO), Statevec(data=np.array([np.sqrt(1 - 1e-8), np.sqrt(1e-8)])), False, 0.0),
             (
-                Statevec(data=BasicStates.ZERO),
-                Statevec(data=np.array([np.sqrt(1 - 1e-8), np.sqrt(1e-8)])),
+                Statevector(data=BasicStates.ZERO),
+                Statevector(data=np.array([np.sqrt(1 - 1e-8), np.sqrt(1e-8)])),
+                False,
+                0.0,
+            ),
+            (
+                Statevector(data=BasicStates.ZERO),
+                Statevector(data=np.array([np.sqrt(1 - 1e-8), np.sqrt(1e-8)])),
                 True,
                 1.0e-6,
             ),
         ],
     )
-    def test_isclose(self, sv1: Statevec, sv2: Statevec, isclose: bool, atol: float) -> None:
+    def test_isclose(self, sv1: Statevector, sv2: Statevector, isclose: bool, atol: float) -> None:
         if isclose:
             assert sv1.isclose(sv2, atol=atol)
         else:
@@ -420,7 +429,7 @@ class TestStatevec:
         ],
     )
     def test_to_dict(self, encoding: _ENCODING, dict_ref: Mapping[str, float]) -> None:
-        sv = Statevec(data=[BasicStates.ZERO, BasicStates.PLUS, BasicStates.MINUS])
+        sv = Statevector(data=[BasicStates.ZERO, BasicStates.PLUS, BasicStates.MINUS])
         for ket, amp in sv.to_dict(encoding=encoding).items():
             assert np.isclose(dict_ref[ket], amp.real)
             assert np.isclose(0, amp.imag)
@@ -433,7 +442,7 @@ class TestStatevec:
         ],
     )
     def test_to_prob_dict(self, encoding: _ENCODING, dict_ref: Mapping[str, float]) -> None:
-        sv = Statevec(data=[BasicStates.ONE, BasicStates.PLUS, BasicStates.MINUS])
+        sv = Statevector(data=[BasicStates.ONE, BasicStates.PLUS, BasicStates.MINUS])
         for ket, amp2 in sv.to_prob_dict(encoding=encoding).items():
             assert np.isclose(dict_ref[ket], amp2.real)
             assert np.isclose(0, amp2.imag)
@@ -466,7 +475,7 @@ class TestStatevec:
         )
         pattern = qc.transpile().pattern
         data = generate_rnd_data(fx_rng, nqubits)
-        sv = Statevec(data=data)
+        sv = Statevector(data=data)
         sv_test = pattern.simulate_pattern(backend="statevector", input_state=sv, rng=fx_rng)
 
         assert sv_test.isclose(sv)
@@ -487,7 +496,7 @@ class TestStatevectorBackend:
     def test_init_basic_states(self, state: State, data_ref: npt.NDArray[np.complex128]) -> None:
         backend = StatevectorBackend()
         backend.add_nodes([0], data=state)
-        sv = Statevec(data=data_ref)
+        sv = Statevector(data=data_ref)
         assert backend.state.isclose(sv)
 
     @pytest.mark.parametrize(
@@ -499,13 +508,13 @@ class TestStatevectorBackend:
         data = generate_rnd_data(fx_rng, n_nodes)
         backend = StatevectorBackend.with_capacity(capacity)
         backend.add_nodes(range(n_nodes), data=data)
-        sv = Statevec(data=data)
+        sv = Statevector(data=data)
         assert backend.state.isclose(sv)
         assert backend.state.max_qubits == max(n_nodes, capacity)
 
     def test_init_branch_selector(self) -> None:
         max_qubits = 5
-        sv = Statevec(nqubit=3)
+        sv = Statevector(nqubit=3)
         bs = ConstBranchSelector(result=0)
 
         backend = StatevectorBackend.with_capacity(max_qubits, sv, branch_selector=bs)
@@ -515,7 +524,7 @@ class TestStatevectorBackend:
         assert backend.state.max_qubits == 5
 
     def test_init_branch_selector_kw(self) -> None:
-        sv = Statevec(nqubit=3)
+        sv = Statevector(nqubit=3)
         bs = ConstBranchSelector(result=0)
 
         with pytest.raises(TypeError):
@@ -540,7 +549,7 @@ class TestStatevectorBackend:
         backend.add_nodes(nodes=range(nqubits), data=data)
         backend.apply_clifford(node=0, clifford=clifford)
 
-        vec = Statevec(nqubit=nqubits, data=data)
+        vec = Statevector(nqubit=nqubits, data=data)
         vec.evolve_single(clifford.matrix, 0)
 
         assert backend.state.isclose(vec)
@@ -640,14 +649,14 @@ class TestStatevectorBackend:
     @pytest.mark.parametrize("permutation", list(itertools.permutations(range(3))))
     def test_permute(self, fx_rng: Generator, permutation: Sequence[int]) -> None:
         nqubits = len(permutation)
-        statevec = Statevec(rand_state_vector(nqubits, fx_rng))
+        statevec = Statevector(rand_state_vector(nqubits, fx_rng))
         statevec_ref = copy.copy(statevec)
         statevec.permute(permutation)
         permute_with_swap(statevec_ref, permutation)
         assert np.array_equal(statevec.psi, statevec_ref.psi)
 
     def test_permute_bad_permutation(self) -> None:
-        statevec = Statevec(nqubit=2)
+        statevec = Statevector(nqubit=2)
         with pytest.raises(ValueError, match="Permutation has length"):
             statevec.permute([0])
         with pytest.raises(ValueError, match="not a permutation"):
