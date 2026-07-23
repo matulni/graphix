@@ -96,7 +96,7 @@ class ReverseDependency:
     "package",
     [
         ReverseDependency("https://github.com/matulni/graphix-symbolic", branch="backend"),
-        ReverseDependency("https://github.com/TeamGraphix/graphix-stim-backend"),
+        ReverseDependency("https://github.com/TeamGraphix/graphix-stim-backend", branch="rename_methods"),
         ReverseDependency("https://github.com/matulni/graphix-stim-backend", branch="rename_methods"),
         ReverseDependency("https://github.com/TeamGraphix/graphix-qasm-parser"),
         ReverseDependency("https://github.com/matulni/graphix-ibmq", doctest_modules=False, branch="rename_methods"),
