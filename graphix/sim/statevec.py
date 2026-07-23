@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 NUM_QUBIT_PARALLEL = 15
 """This compilation constant determines the number of qubits above which matrix operations
 are multi-threaded. For lower counts, the overhead does not compensate parallelization.
-This number was determined empirically and it may be platform dependent."""
+This number was determined empirically and may be platform dependent."""
 
 
 class Statevector(DenseState):
@@ -91,7 +91,7 @@ class Statevector(DenseState):
     def __init__(self, data: Data = BasicStates.PLUS, nqubit: int | None = None, max_qubits: int | None = None) -> None:
         """Initialize a statevector object.
 
-        `data` can be:
+        ``data`` can be:
         - a single :class:`graphix.states.State` (classical description of a quantum state)
         - an iterable of :class:`graphix.states.State` objects
         - an iterable of scalars (a :math:`2^n` numerical statevector)
@@ -221,7 +221,7 @@ class Statevector(DenseState):
 
     @property
     def psi(self) -> npt.NDArray[np.complex128]:
-        r"""Return a view of the meaningful elements in ``self._psi``.
+        r"""View of the meaningful elements in ``self._psi``.
 
         These are the first ``2**self.nqubit`` elements.
         """
@@ -232,18 +232,18 @@ class Statevector(DenseState):
     @property
     @override
     def nqubit(self) -> int:
-        """Return the number of qubits."""
+        """Number of qubits."""
         return self._nqubit
 
     @property
     def max_qubits(self) -> int:
-        """Return the preallocated number of qubits."""
+        """Preallocated number of qubits."""
         return self._max_qubits
 
     def ensure_capacity(self, required_qubits: int) -> None:
         """Extend the state vector if the required qubit capacity exceeds the current one.
 
-        It copies the full vector state if ``required_qubits > self.max_qubits``,
+        It copies the full state vector if ``required_qubits > self.max_qubits``,
         otherwise does nothing.
 
         Parameters
@@ -260,7 +260,7 @@ class Statevector(DenseState):
 
     @override
     def flatten(self) -> Matrix:
-        """Return flattened state.
+        """Return flattened state vector.
 
         A view of only the first ``2**self.nqubit`` elements of ``self._psi`` is returned.
         """
