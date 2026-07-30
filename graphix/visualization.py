@@ -18,7 +18,7 @@ from matplotlib import pyplot as plt
 from typing_extensions import assert_never
 
 from graphix.flow.core import CausalFlow, PauliFlow, XZCorrections
-from graphix.measurements import PauliMeasurement
+from graphix.measurements import Axis, PauliMeasurement
 from graphix.opengraph import OpenGraph
 
 if TYPE_CHECKING:
@@ -409,7 +409,7 @@ class GraphVisualizer:
                 marker = INPUT_NODE_MARKER
             if node in self.og.output_nodes:
                 fc = OUTPUT_NODE_FC
-            elif self.options.pauli_measurements and isinstance(self.og.measurements[node], PauliMeasurement):
+            elif self.options.pauli_measurements and isinstance(self.og.measurements[node], (Axis, PauliMeasurement)):
                 fc = PAULI_NODE_FC
             plt.scatter(*self.pos[node], edgecolor=ec, facecolor=fc, s=350, zorder=2, marker=marker)
 
@@ -590,7 +590,7 @@ class GraphVisualizer:
             )
         if self.options.pauli_measurements:
             has_pauli_measurements = any(
-                isinstance(measurement, PauliMeasurement) for measurement in self.og.measurements.values()
+                isinstance(measurement, (PauliMeasurement, Axis)) for measurement in self.og.measurements.values()
             )
             if has_pauli_measurements:
                 plt.scatter(

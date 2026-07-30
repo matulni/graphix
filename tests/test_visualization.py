@@ -10,7 +10,7 @@ import pytest
 
 from graphix import Circuit, Pattern, Plane, XZCorrections, command, visualization
 from graphix.fundamentals import ANGLE_PI
-from graphix.measurements import Measurement
+from graphix.measurements import Axis, Measurement
 from graphix.opengraph import OpenGraph, OpenGraphError
 from graphix.pattern import DrawPatternAnnotations
 from graphix.visualization import Colored, GraphVisualizer, _edge_intersects_node
@@ -212,6 +212,7 @@ def test_non_determinist() -> None:
         pattern.draw()
 
 
+@pytest.mark.usefixtures("mock_plot")
 @pytest.mark.parametrize("annotations", [None, DrawPatternAnnotations.Flow, DrawPatternAnnotations.XZCorrections])
 def test_empty(annotations: DrawPatternAnnotations | None) -> None:
     pattern = Pattern()
@@ -318,6 +319,7 @@ def test_legend_x_corrections_only() -> Figure:
     return plt.gcf()
 
 
+@pytest.mark.usefixtures("mock_plot")
 @pytest.mark.parametrize("flow_from_pattern", [False, True])
 @pytest.mark.mpl_image_compare
 def test_draw_graph_reference_pauli_flow(flow_from_pattern: bool) -> Figure:
@@ -348,3 +350,15 @@ def test_unexpected_arrow_paths() -> None:
     visualizer = GraphVisualizer(og=og, pos={}, edge_paths={}, arrow_paths={(0, 1): Colored([], "")})
     with pytest.raises(RuntimeError, match="Unexpected arrow paths with source None"):
         visualizer._draw_legend()
+
+
+@pytest.mark.usefixtures("mock_plot")
+@pytest.mark.mpl_image_compare
+def test_pauli_measurements_from_axis_legend() -> Figure:
+
+    og = OpenGraph(graph=nx.Graph([(0, 1)]), input_nodes=[0], output_nodes=[1], measurements={0: Axis.X})
+
+    xz_corr = XZCorrections.from_measured_nodes_mapping(og, {0: {1}})
+
+    xz_corr.draw()
+    return plt.gcf()
