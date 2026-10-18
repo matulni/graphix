@@ -34,6 +34,8 @@ defined in :ref:`the earlier section on measurements <measurement-bases>`;
 the two outcomes :math:`s = 0, 1` correspond to the signs :math:`+` and
 :math:`-`.
 
+.. _mbqc-commands-table:
+
 .. list-table:: Syntax and semantics of MBQC commands
    :header-rows: 1
    :widths: 10 10 10 10

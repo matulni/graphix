@@ -65,6 +65,13 @@ Throughout the tutorials, we link to the original research articles so you can d
 
       Transpile any quantum circuit into an MBQC pattern using Graphix.
 
+   .. grid-item-card:: Pattern simulation
+      :link: source/pattern_simulation
+      :link-type: doc
+      :class-card: tutorial-card
+      :shadow: md
+
+      Simulate the input-to-output register map defined by an MBQC pattern.
 
 .. toctree::
     :hidden:
@@ -76,4 +83,5 @@ Throughout the tutorials, we link to the original research articles so you can d
     source/pattern_xzcorrections
     source/flows
     source/transpilation
+    source/pattern_simulation
 
